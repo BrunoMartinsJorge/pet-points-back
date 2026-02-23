@@ -1,10 +1,10 @@
 package br.com.api.petpoints.core.security;
 
-import br.com.petpoints.back.core.token.TokenModel;
-import br.com.petpoints.back.core.token.TokenService;
-import br.com.petpoints.back.modules.usuario.exception.UsuarioNaoEncontrado;
-import br.com.petpoints.back.modules.usuario.model.UsuarioModel;
-import br.com.petpoints.back.modules.usuario.repository.UsuarioRepository;
+import br.com.api.petpoints.core.token.TokenModel;
+import br.com.api.petpoints.core.token.TokenService;
+import br.com.api.petpoints.modules.usuario.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
+import br.com.api.petpoints.modules.usuario.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
