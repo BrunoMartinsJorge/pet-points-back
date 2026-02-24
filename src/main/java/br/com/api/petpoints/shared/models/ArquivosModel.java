@@ -22,7 +22,10 @@ public class ArquivosModel {
     private String tipo;
     private Long tamanho;
 
-    @Lob
+    /*@Lob //H2
     @Column(name = "dados")
+    private byte[] dados;*/
+    @Lob //Postgres
+    @Column(columnDefinition = "bytea")
     private byte[] dados;
 }

@@ -45,6 +45,6 @@ public class AtendimentoModel {
     private StatusAtendimentoEnum status;
 
     @OneToOne
-    @Column(name = "avaliacao_id")
+    @JoinColumn(name = "avaliacao_id")
     private AvaliacaoModel avaliacao;
 }

@@ -21,6 +21,6 @@ public class ChatParticipanteModel {
     private ChatModel chat;
 
     @ManyToOne
-    @Column(name = "participante_id")
+    @JoinColumn(name = "participante_id")
     private UsuarioModel participante;
 }

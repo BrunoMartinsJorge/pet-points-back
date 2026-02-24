@@ -18,7 +18,7 @@ public class EspecializacaoModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToMany(mappedBy = "usuario_id")
+    @OneToMany
     @JoinColumn(name = "veterinario_id")
     private Set<UsuarioModel> veterinarios;
 

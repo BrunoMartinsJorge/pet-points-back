@@ -28,7 +28,7 @@ public class LogsModel {
     private TipoLogEnum tipo;
 
     @ManyToOne
-    @Column(name = "lancado_por")
+    @JoinColumn(name = "lancado_por")
     private UsuarioModel lancadoPor;
 
     @CreationTimestamp

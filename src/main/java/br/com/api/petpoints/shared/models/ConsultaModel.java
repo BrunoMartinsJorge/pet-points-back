@@ -55,7 +55,7 @@ public class ConsultaModel {
     @Column(name = "solicitado_em")
     private LocalDateTime solicitadoEm;
 
-    @Column(name = "solicitado_em")
+    @Column(name = "deferido_em")
     private LocalDateTime deferidoEm;
 
     @Length(min = 8, max = 200)
