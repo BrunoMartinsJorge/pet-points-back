@@ -1,7 +1,7 @@
-package br.com.api.petpoints.modules.usuario.repository;
+package br.com.api.petpoints.shared.repository;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
+import br.com.api.petpoints.shared.models.UsuarioModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

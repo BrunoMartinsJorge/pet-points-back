@@ -1,10 +1,9 @@
-package br.com.api.petpoints.modules.usuario.models;
+package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfil;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
@@ -15,14 +14,12 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.lang.annotation.Target;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Entity
 @Data
