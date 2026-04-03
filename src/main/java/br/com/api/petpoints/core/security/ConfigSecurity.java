@@ -42,7 +42,7 @@ public class ConfigSecurity {
                         //.requestMatchers("/ws/notifications/**").permitAll()
 
                         // Endpoints de usuários abaixo:
-                        .requestMatchers("/conta/**").permitAll()
+                        .requestMatchers("/autenticacao/**").permitAll()
                         .requestMatchers("/arquivos/**").permitAll()
 
                         // Endpoints de clientes abaixo:

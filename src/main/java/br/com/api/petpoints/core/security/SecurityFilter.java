@@ -2,15 +2,15 @@ package br.com.api.petpoints.core.security;
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.core.token.TokenService;
-import br.com.api.petpoints.modules.usuario.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
-import br.com.api.petpoints.modules.usuario.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.exception.custom.TokenExpiradaException;
+import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
+import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -30,11 +30,11 @@ public class SecurityFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
         List<String> publicEndpoints = List.of(
-                "/conta/login",
-                "/conta/register",
-                "/conta/recover-passowrd",
-                "/conta/recover",
-                "/conta/set-new-passowrd"
+                "/autenticacao/login",
+                "/autenticacao/register",
+                "/autenticacao/enviar-codigo-alterar-senha",
+                "/autenticacao/validar-codigo-alterar-senha",
+                "/autenticacao/redefinir-senha"
         );
         if (path.startsWith("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos")) {
             filterChain.doFilter(request, response);
@@ -42,11 +42,13 @@ public class SecurityFilter extends OncePerRequestFilter {
         }
         var token = this.recoverToken(request);
         if (token == null)
-            throw new AuthenticationCredentialsNotFoundException("Token não encontrado!");
+            throw new TokenNaoEncontradaException("Token não encontrado!");
+        if (!TokenService.tokenValida(token))
+            throw new TokenExpiradaException("Token expirado!");
         TokenModel tokenDados = TokenService.converterTokenParaModel(token);
         Optional<UsuarioModel> user = this.usuarioReporitory.findById(tokenDados.getIdUsuario());
         if (user.isEmpty())
-            throw new UsuarioNaoEncontrado("Usuário com ID: " + tokenDados.getIdUsuario() + " não encontrado!");
+            throw new RuntimeException("Usuário com ID: " + tokenDados.getIdUsuario() + " não encontrado!");
         var authentication = new UsernamePasswordAuthenticationToken(user, null, user.get().getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
