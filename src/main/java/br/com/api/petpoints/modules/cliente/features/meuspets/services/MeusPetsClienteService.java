@@ -1,0 +1,16 @@
+package br.com.api.petpoints.modules.cliente.features.meuspets.services;
+
+import br.com.api.petpoints.modules.cliente.features.meuspets.dto.MeuPetDto;
+import br.com.api.petpoints.modules.cliente.features.meuspets.forms.NovoPetForm;
+import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
+
+import java.util.List;
+
+public interface MeusPetsClienteService {
+    List<MeuPetDto> listarMeusPets(Long idUsuario);
+    MeuPetDto registrarNovoPet(NovoPetForm form, Long idUsuario);
+    String gerarCarteirinha(Long idPet, Model model);
+    List<?> listarPetsConsultas(Long idUsuario);
+
+}

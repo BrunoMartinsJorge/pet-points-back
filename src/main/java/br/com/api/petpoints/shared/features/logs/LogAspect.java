@@ -1,7 +1,7 @@
 package br.com.api.petpoints.shared.features.logs;
 
-import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
-import br.com.api.petpoints.modules.usuario.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.annotations.LogsRegistro;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import lombok.RequiredArgsConstructor;

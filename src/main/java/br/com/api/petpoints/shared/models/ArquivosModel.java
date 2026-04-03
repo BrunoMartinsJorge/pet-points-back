@@ -1,6 +1,7 @@
 package br.com.api.petpoints.shared.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,14 +19,14 @@ public class ArquivosModel {
     @GeneratedValue
     private UUID id;
 
-    private String nomeOriginal;
-    private String tipo;
-    private Long tamanho;
+    @NotBlank(message = "O campo 'nome' não pode estar em branco!")
+    private String nome;
 
-    /*@Lob //H2
-    @Column(name = "dados")
-    private byte[] dados;*/
-    @Lob //Postgres
+    private String tipo;
+
+    private Long descricao;
+
+    @Lob
     @Column(columnDefinition = "bytea")
-    private byte[] dados;
+    private byte[] conteudo;
 }

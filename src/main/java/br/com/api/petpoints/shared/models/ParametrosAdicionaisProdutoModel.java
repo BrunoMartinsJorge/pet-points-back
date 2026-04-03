@@ -23,4 +23,7 @@ public class ParametrosAdicionaisProdutoModel {
     @ManyToOne
     @JoinColumn(name = "produto_id")
     private ProdutoModel produto;
+
+    @Column(name = "tipo_valor")
+    private String tipoValor;
 }

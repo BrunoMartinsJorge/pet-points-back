@@ -1,12 +1,13 @@
 package br.com.api.petpoints.core.token;
 
 import br.com.api.petpoints.modules.usuario.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
-import br.com.api.petpoints.modules.usuario.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.stream.Collectors;
 
 @Service
 public class TokenService {
@@ -78,20 +78,37 @@ public class TokenService {
         return new TokenModel(
                 token_decodificada.getToken(),
                 token_decodificada.getClaim("id_usuario").asLong(),
-                token_decodificada.getClaim("permissoes").asArray(String.class)[0],
-                token_decodificada.getClaim("acessosPermitidos").asList(String.class),
+                token_decodificada.getClaim("permissao").asString(),
                 token_decodificada.getClaim("nomeUsuario").asString()
         );
     }
 
     public static TokenModel converterTokenParaModel(String token) {
-        DecodedJWT token_decodificada = JWT.decode(token);
+        DecodedJWT token_decodificada;
+        if (token.startsWith("Bearer"))
+            token_decodificada = converterToken(token);
+        else
+            token_decodificada = JWT.decode(token);
         return new TokenModel(
                 token,
                 token_decodificada.getClaim("id_usuario").asLong(),
-                token_decodificada.getClaim("permissoes").asArray(String.class)[0],
-                token_decodificada.getClaim("acessosPermitidos").asList(String.class),
+                token_decodificada.getClaim("permissao").asString(),
                 token_decodificada.getClaim("nomeUsuario").asString()
         );
+    }
+
+    public static boolean tokenValida(String token) {
+        DecodedJWT token_decodificada;
+        if (token.startsWith("Bearer"))
+            token_decodificada = converterToken(token);
+        else
+            token_decodificada = JWT.decode(token);
+        Instant expiraEm = token_decodificada.getExpiresAtAsInstant();
+        return Instant.now().isBefore(expiraEm);
+    }
+
+    public static TokenModel converterTokenParaModel(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        return converterTokenParaModel(token);
     }
 }

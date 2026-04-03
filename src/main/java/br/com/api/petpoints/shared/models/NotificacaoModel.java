@@ -27,9 +27,12 @@ public class NotificacaoModel {
     private String conteudo;
 
     @CreationTimestamp
+    @Column(name = "enviado_em")
     private LocalDateTime enviadoEm;
 
     private boolean visto = false;
+
+    private String titulo;
 
     @Enumerated(EnumType.STRING)
     private TiposNotificacoesEnum tipo;

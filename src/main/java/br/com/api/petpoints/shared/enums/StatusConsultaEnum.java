@@ -7,6 +7,8 @@ import java.io.Serializable;
 @Getter
 public enum StatusConsultaEnum implements Serializable {
     PENDENTE("Pendente"),
+    APROVADA("Aprovada"),
+    REPROVADA("Reprovada"),
     INICIADO("Iniciado"),
     FINALIZADO("Finalizado"),
     CANCELADO("Cancelado");

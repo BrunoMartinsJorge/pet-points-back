@@ -14,7 +14,7 @@ public class TokenModel {
     private String token;
     private Long idUsuario;
     private String rule;
-    private List<String> acessos = new ArrayList<>();
+    //private List<String> acessos = new ArrayList<>();
     private String nomeUsuario;
 
     public TokenModel(String token) {
@@ -23,7 +23,7 @@ public class TokenModel {
         this.token = tokenDecoded.getToken();
         this.idUsuario = tokenDecoded.getIdUsuario();
         this.rule = tokenDecoded.getRule();
-        this.acessos = tokenDecoded.getAcessos();
+        // this.acessos = tokenDecoded.getAcessos();
         this.nomeUsuario = tokenDecoded.getNomeUsuario();
     }
 }

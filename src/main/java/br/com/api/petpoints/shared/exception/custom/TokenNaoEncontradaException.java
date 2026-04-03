@@ -1,8 +1,6 @@
 package br.com.api.petpoints.shared.exception.custom;
 
-import javax.naming.AuthenticationException;
-
-public class TokenNaoEncontradaException extends AuthenticationException {
+public class TokenNaoEncontradaException extends RuntimeException {
     public TokenNaoEncontradaException(String msg) {
         super(msg);
     }

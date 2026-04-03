@@ -44,6 +44,9 @@ public class AtendimentoModel {
     @Column(name = "status_atendimento")
     private StatusAtendimentoEnum status;
 
+    @Column(name = "primeira_mensagem")
+    private String primeiraMensagem;
+
     @OneToOne
     @JoinColumn(name = "avaliacao_id")
     private AvaliacaoModel avaliacao;

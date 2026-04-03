@@ -1,15 +1,17 @@
 package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
+import br.com.api.petpoints.modules.gerente.features.funcionarios.forms.FuncionarioForm;
+import br.com.api.petpoints.modules.usuario.forms.RegistroForm;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
-import br.com.api.petpoints.shared.enums.StatusPerfil;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.validator.constraints.br.CPF;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,11 +36,10 @@ public class UsuarioModel implements UserDetails {
 
     @Column(unique = true)
     @NotNull(message = "O campo 'email' não pode ser nulo!")
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\n" +
-            "\n", message = "Campo 'email' com valor inválido para email!")
     private String email;
 
     @NotNull(message = "O campo 'senha' não pode ser nulo!")
+    @Column(name = "password")
     private String senha;
 
     @NotNull(message = "O campo 'nome' não pode ser nulo!")
@@ -46,7 +47,7 @@ public class UsuarioModel implements UserDetails {
 
     @Column(unique = true)
     @NotNull(message = "O campo 'cpf' não pode ser nulo!")
-    @Pattern(regexp = "[0-9]{3}\\\\.[0-9]{3}\\\\.[0-9]{3}-[0-9]{2}", message = "O campo 'CPF' está com um valor inválido para um CPF!")
+    @CPF(message = "CPF inválido!")
     private String cpf;
 
     @NotNull(message = "O campo 'telefone' não pode ser nulo!")
@@ -72,12 +73,34 @@ public class UsuarioModel implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_conta")
-    private StatusPerfil statusPerfil = StatusPerfil.A;
+    private StatusPerfilEnum statusPerfilEnum = StatusPerfilEnum.A;
 
-    public UsuarioModel(String email, String senha, TipoUsuario permissao) {
+    public UsuarioModel(String email, String senhaEncoded, TipoUsuario tipoUsuario) {
         this.email = email;
-        this.senha = senha;
-        this.permissao = permissao;
+        this.senha = senhaEncoded;
+        this.permissao = tipoUsuario;
+    }
+
+    public UsuarioModel(RegistroForm registro, TipoUsuario tipoUsuario, String senhaEncoded) {
+        this.email = registro.getEmail();
+        this.senha = senhaEncoded;
+        this.permissao = tipoUsuario;
+        this.cpf = registro.getCpf();
+        this.dataNascimento = registro.getDataNascimento();
+        this.genero = registro.getGenero();
+        this.nome = registro.getNome();
+        this.telefone = registro.getTelefone();
+    }
+
+    public UsuarioModel(FuncionarioForm form, String senhaEncoded) {
+        this.email = form.getEmail();
+        this.senha = senhaEncoded;
+        this.permissao = form.getPermissao();
+        this.cpf = form.getCpf();
+        this.dataNascimento = form.getDataNascimento();
+        this.genero = form.getGenero();
+        this.nome = form.getNome();
+        this.telefone = form.getTelefone();
     }
 
     @Override

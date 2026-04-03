@@ -34,4 +34,10 @@ public class LogsModel {
     @CreationTimestamp
     @Column(name = "registrado_em")
     private LocalDateTime registradoEm;
+
+    public LogsModel(UsuarioModel usuario, TipoLogEnum tipo, String mensagem) {
+        this.lancadoPor = usuario;
+        this.tipo = tipo;
+        this.mensagem = mensagem;
+    }
 }

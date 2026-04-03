@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<meta charset="UTF-8"/>
+<body style="font-family: Arial,serif; background:#f4f4f4; padding:20px;">
+
+<div style="max-width:600px; margin:auto; background:white; padding:30px; border-radius:8px">
+
+    <h1 style="color:#3b7c2e;">Pet Points 🐾</h1>
+
+    <p>Olá <b th:text="${usuario}"></b>,</p>
+
+    <p>Você solicitou um código de alteração de senha</p>
+
+    <p>E aqui está ele!.</p>
+
+    <h2 th:text="${codigo}"></h2>
+
+    <hr style="margin-top:30px">
+
+    <p style="font-size:12px; color:gray">
+        Pet Points - Sistema de gerenciamento veterinário
+    </p>
+
+</div>
+
+</body>
+</html>

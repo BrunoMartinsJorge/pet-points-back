@@ -1,7 +1,7 @@
 package br.com.api.petpoints.modules.usuario;
 
-import br.com.api.petpoints.modules.usuario.models.UsuarioModel;
-import br.com.api.petpoints.modules.usuario.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

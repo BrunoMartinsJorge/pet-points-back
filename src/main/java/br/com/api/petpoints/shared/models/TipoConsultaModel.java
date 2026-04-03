@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Table(name = "tipo_consulta")
 @Data
@@ -26,4 +28,12 @@ public class TipoConsultaModel {
 
     @NotNull(message = "O campo 'valor' não pode ser nulo!")
     private double valor;
+
+    @ManyToMany
+    @JoinTable(
+            name = "tipo_consulta_usuario",
+            joinColumns = @JoinColumn(name = "tipo_consulta_id"),
+            inverseJoinColumns = @JoinColumn(name = "usuario_id")
+    )
+    private List<UsuarioModel> veterinarios;
 }

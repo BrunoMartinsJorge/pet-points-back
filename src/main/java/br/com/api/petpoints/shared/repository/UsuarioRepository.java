@@ -12,7 +12,8 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
     Optional<UsuarioModel> findByEmail(String email);
     boolean existsByEmail(String email);
+    boolean existsByEmailOrCpf(String email, String cpf);
     Optional<UsuarioModel> findByEmailAndPassword(String email, String password);
-    boolean existsByEmailAndPassword(String email, String password);
-    List<UsuarioModel> findAllByPermissaoNotContains(TipoUsuario role);
+    boolean existsByEmailAndSenha(String email, String password);
+    List<UsuarioModel> findAllByPermissaoNot(TipoUsuario role);
 }

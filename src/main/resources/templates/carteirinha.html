@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        div.carteirinha {
+            display: flex;
+            text-orientation: sideways;
+            border: 1px solid #ccc;
+            width: 400px;
+            height: 512px;
+            margin: 1em;
+        }
+
+        div.lateral {
+            background-color: #0C6369;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            color: #fff;
+            font-weight: bolder;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.5em;
+            letter-spacing: 0.10rem;
+            text-align: center;
+        }
+
+        div.pet-info {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            grid-gap: 1em;
+            padding: 0.5em;
+        }
+
+        div.pet-foto {
+            border: 1px dashed #0C6369;
+            width: 100%;
+            height: 40%;
+            padding: 0.5em;
+        }
+
+        div.imagem {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        img {
+            width: 100%;
+            height: auto;
+            object-fit: unset;
+            display: block;
+        }
+
+        div.infos {
+            border: 1px dashed #0C6369;
+            width: 100%;
+            padding: 1em;
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            grid-gap: 1em;
+        }
+
+        span.overflow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: translateY(-0.5em) translateX(1em);
+            font-size: 12px;
+            letter-spacing: 0.10rem;
+            font-weight: bold;
+            color: #0C6369;
+            background-color: #fff;
+            padding: 0 0.5em;
+        }
+
+        div.data {
+            min-width: 45%;
+            gap: 5px;
+            display: flex;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="carteirinha">
+    <div class="lateral">PET POINTS</div>
+    <div class="pet-info">
+        <div class="pet-foto">
+            <div class="imagem">
+                <!--<img th:if="${pet.fotoUuid != null}"
+                     th:src="@{http://localhost:8080/arquivos/{id}(id=${pet.fotoUuid})}"
+                     alt="Foto do pet"
+                     style="width: 100px; height: 100px; object-fit: cover;"/>-->
+
+                <span th:if="${pet.fotoUuid == null}">
+        Sem imagem
+    </span>
+            </div>
+
+        </div>
+        <div class="infos">
+            <span class="overflow">PET</span>
+            <div class="data"><strong>Nome </strong> <span th:text="${pet.nome}"></span></div>
+            <div class="data"><strong>Gênero </strong> <span th:text="${pet.genero}"></span></div>
+            <div class="data"><strong>Tipo </strong> <span th:text="${pet.tipoAnimal}"></span></div>
+            <div class="data"><strong>Raça </strong> <span th:text="${pet.raca}"></span></div>
+        </div>
+        <div class="infos">
+            <span class="overflow">TUTOR</span>
+            <div class="data"><strong>Nome </strong> <span th:text="${pet.nomeTutor}"></span></div>
+            <div class="data"><strong>Gênero </strong> <span th:text="${pet.generoTutor}"></span></div>
+            <div class="data"><strong>Telefone </strong> <span th:text="${pet.telefoneTutor}"></span></div>
+            <div class="data"><strong>Emial </strong> <span th:text="${pet.emailTutor}"></span></div>
+            <div class="data"><strong>CPF </strong> <span th:text="${pet.cpfTutor}"></span></div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
