@@ -10,6 +10,10 @@ public class LocalDateTimeUtils {
         if (localDateTime == null) return null;
         LocalDate data = localDateTime.toLocalDate();
         LocalTime horario = localDateTime.toLocalTime();
-        return data.getDayOfMonth() + "/" + data.getMonthValue() + "/" + data.getYear() + " - " + horario.getHour() + ":" + horario.getMinute() + ":" + horario.getSecond();
+        return adicionarZero(data.getDayOfMonth()) + "/" + adicionarZero(data.getMonthValue()) + "/" + adicionarZero(data.getYear()) + " - " + adicionarZero(horario.getHour()) + ":" + adicionarZero(horario.getMinute()) + ":" + adicionarZero(horario.getSecond());
+    }
+
+    protected static String adicionarZero(int value) {
+        return value < 10 ? "0" + value : String.valueOf(value);
     }
 }

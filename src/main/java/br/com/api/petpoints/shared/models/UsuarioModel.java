@@ -1,8 +1,8 @@
 package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.modules.gerente.features.funcionarios.forms.FuncionarioForm;
-import br.com.api.petpoints.modules.usuario.forms.RegistroForm;
+import br.com.api.petpoints.modules.auth.forms.RegistroForm;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FuncionarioForm;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import jakarta.persistence.*;

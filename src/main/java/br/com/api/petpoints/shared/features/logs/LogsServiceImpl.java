@@ -2,8 +2,7 @@ package br.com.api.petpoints.shared.features.logs;
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.core.token.TokenService;
-import br.com.api.petpoints.modules.usuario.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
+import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.models.LogsModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;

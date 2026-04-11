@@ -1,7 +1,8 @@
 package br.com.api.petpoints.core.security;
 
-import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.core.token.TokenService;
+import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.exception.custom.TokenExpiradaException;
 import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
 import br.com.api.petpoints.shared.models.UsuarioModel;
@@ -18,7 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
@@ -45,13 +45,16 @@ public class SecurityFilter extends OncePerRequestFilter {
             throw new TokenNaoEncontradaException("Token não encontrado!");
         if (!TokenService.tokenValida(token))
             throw new TokenExpiradaException("Token expirado!");
-        TokenModel tokenDados = TokenService.converterTokenParaModel(token);
-        Optional<UsuarioModel> user = this.usuarioReporitory.findById(tokenDados.getIdUsuario());
-        if (user.isEmpty())
-            throw new RuntimeException("Usuário com ID: " + tokenDados.getIdUsuario() + " não encontrado!");
-        var authentication = new UsernamePasswordAuthenticationToken(user, null, user.get().getAuthorities());
+        UsernamePasswordAuthenticationToken authentication = this.validarUsuario(TokenService.converterTokenParaModel(token).getIdUsuario());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
+    }
+
+    private UsernamePasswordAuthenticationToken validarUsuario(Long idUsuario) {
+        UsuarioModel user = this.usuarioReporitory.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario + " não encontrado!"));
+        if (user.getStatusPerfilEnum() == StatusPerfilEnum.D)
+            throw new RuntimeException("Atividade de perfil desabilitado executada!"); // Illegal
+        return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }
 
     private String recoverToken(HttpServletRequest request) {

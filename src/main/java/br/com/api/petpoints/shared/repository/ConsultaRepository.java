@@ -17,6 +17,9 @@ public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
     List<ConsultaModel> findAllByVeterinario_Id(Long id);
     List<ConsultaModel> findAllByStatus(StatusConsultaEnum status);
 
+    @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and (u.status = 'Aprovada' or u.status = 'Pendente' or u.status = 'Iniciado')")
+    List<ConsultaModel> buscarConsultasPendentesOuConfirmadasPorUsuario(Long idUsuario);
+
     @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and u.pagamento is null and u.status = 'Finalizado'")
     List<ConsultaModel> buscarConsultasPorUsuarioComPagamentosPendentes(Long idUsuario);
 }

@@ -36,4 +36,10 @@ public class MensagemModel {
     @CreationTimestamp
     @Column(name = "enviado_em")
     private LocalDateTime enviadoEm;
+
+    public MensagemModel(ChatModel chat, UsuarioModel remetente, String conteudo) {
+        this.chat = chat;
+        this.remetente = remetente;
+        this.conteudo = conteudo;
+    }
 }

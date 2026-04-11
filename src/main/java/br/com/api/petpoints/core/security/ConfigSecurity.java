@@ -27,7 +27,7 @@ public class ConfigSecurity {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAuthenticationEntryPoint entryPoint) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
 
         return http
                 .cors(Customizer.withDefaults())
@@ -35,44 +35,23 @@ public class ConfigSecurity {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
 
-                        // LIBERE O WEBSOCKET AQUI!!!
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/ws/cliente/**").permitAll()
-                        .requestMatchers("/ws/atendente/**").permitAll()
-                        //.requestMatchers("/ws/notifications/**").permitAll()
-
-                        // Endpoints de usuários abaixo:
                         .requestMatchers("/autenticacao/**").permitAll()
-                        .requestMatchers("/arquivos/**").permitAll()
 
-                        // Endpoints de clientes abaixo:
+                        .requestMatchers("/ws/chat-interno/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE", "RULE_REST_DOUTORES")
+                        .requestMatchers("/ws/notifications/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE", "RULE_REST_DOUTORES", "RULE_REST_CLIENTE")
+                        .requestMatchers("/ws/chat-atendimento/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_CLIENTE")
+
+                        /*.requestMatchers("/arquivos/**").permitAll()*/
+
                         .requestMatchers("/cliente/**").hasAuthority("RULE_REST_CLIENTE")
 
-                        // Endpoints de atendentes abaixo:
                         .requestMatchers("/atendentes/**").hasAuthority("RULE_REST_ATENDENTE")
 
-                        // Endpoints de gerentes abaixo:
                         .requestMatchers("/gerente/**").hasAuthority("RULE_REST_GERENTE")
 
-                        .requestMatchers("/chat-interno/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_DOUTORES", "RULE_REST_GERENTE")
-                        .requestMatchers("/notifications/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_DOUTORES", "RULE_REST_GERENTE")
-                        .requestMatchers("/ws/notifications/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_DOUTORES", "RULE_REST_GERENTE")
+                        .requestMatchers("/estoquista/**").hasAuthority("RULE_REST_ESTOQUISTA")
 
                         .requestMatchers("/relatorios/**").hasAnyAuthority("RULE_REST_GERENTE")
-
-                        /*// Endpoints de usuários abaixo:
-                        .requestMatchers(HttpMethod.POST, "/conta/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/arquivos/upload").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/conta/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/conta/recover-passowrd").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/conta/recover").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/conta/set-new-passowrd").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/conta/excluir-conta/").hasAnyRole("CLIENTE", "GERENTE", "FUNCIONARIO")
-
-                        // Endpoints de clientes abaixo:
-                        .requestMatchers(HttpMethod.POST, "/cliente/").hasAuthority("RULE_REST_CLIENTE")
-                        .requestMatchers(HttpMethod.POST, "/cliente/cadastrar-pet/").hasAuthority("RULE_REST_CLIENTE")
-                        .requestMatchers(HttpMethod.POST, "/cliente/chat/new-chat").hasAuthority("RULE_REST_CLIENTE")*/
 
                         .anyRequest().authenticated()
                 )

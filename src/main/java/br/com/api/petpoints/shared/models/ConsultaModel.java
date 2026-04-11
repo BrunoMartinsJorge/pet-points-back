@@ -1,6 +1,5 @@
 package br.com.api.petpoints.shared.models;
 
-import br.com.api.petpoints.modules.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

@@ -1,5 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
+import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovoProdutoForm;
 import br.com.api.petpoints.shared.enums.TipoProdutoEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -36,4 +37,13 @@ public class ProdutoModel {
     private String descricao;
 
     private String nome;
+
+    public ProdutoModel(NovoProdutoForm form) {
+        this.tipo = form.getTipo();
+        this.valorUnitario = form.getValorUnitario();
+        this.quantidadeEstoque = form.getQuantidade();
+        this.quantidadeMinima = form.getQuantidadeMinima();
+        this.descricao = form.getDescricao();
+        this.nome = form.getNome();
+    }
 }

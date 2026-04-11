@@ -16,4 +16,6 @@ public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
     Optional<UsuarioModel> findByEmailAndPassword(String email, String password);
     boolean existsByEmailAndSenha(String email, String password);
     List<UsuarioModel> findAllByPermissaoNot(TipoUsuario role);
+    List<UsuarioModel> findAllByPermissao(TipoUsuario role);
+    List<UsuarioModel> findAllByPermissaoNotAndIdNot(TipoUsuario role, Long idUsuario);
 }

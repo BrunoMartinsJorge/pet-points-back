@@ -1,6 +1,6 @@
 package br.com.api.petpoints.core.token;
 
-import br.com.api.petpoints.modules.usuario.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import com.auth0.jwt.JWT;
