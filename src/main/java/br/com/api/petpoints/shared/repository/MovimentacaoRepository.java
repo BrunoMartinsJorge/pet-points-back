@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface MovimentacaoRepository extends JpaRepository<MovimentacaoModel, Long> {
     List<MovimentacaoModel> findAllByProduto_IdAndMovimentadoPor_Id(Long idProduto, Long idUsuario);
+    List<MovimentacaoModel> findAllByMovimentadoPor_Id(Long idUsuario);
 }

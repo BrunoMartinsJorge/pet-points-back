@@ -4,6 +4,7 @@ import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.CardsE
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoDetalhesDto;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoEstoqueDto;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.FiltrosProdutoForm;
+import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovoProdutoForm;
 
 import java.util.List;
@@ -15,4 +16,5 @@ public interface EstoqueService {
     ProdutoDetalhesDto buscarDetalhesProdutosEstoque(Long idProduto, Long idUsuario);
     byte[] gerarRelatorioProdutos(FiltrosProdutoForm form);
     void registrarProduto(NovoProdutoForm form);
+    void realizarMovimentacao(NovaMovimentacaoForm form, Long idUsuario);
 }

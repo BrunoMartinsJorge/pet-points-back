@@ -1,5 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
+import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -37,4 +38,11 @@ public class MovimentacaoModel {
 
     @Column(name = "quantidade_movimentada")
     private int quantidadeMovimentada;
+
+    public MovimentacaoModel(NovaMovimentacaoForm form, UsuarioModel usuario, ProdutoModel produto) {
+        this.movimentadoPor = usuario;
+        this.produto = produto;
+        this.tipo = form.getTipoMovimentacao();
+        this.quantidadeMovimentada = form.getQuantidadeMovimentada();
+    }
 }
