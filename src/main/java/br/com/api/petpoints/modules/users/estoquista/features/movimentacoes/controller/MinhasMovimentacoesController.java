@@ -2,13 +2,14 @@ package br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.con
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.dto.MinhasMovimentacoesDto;
+import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.RelatorioMovimentacoesForm;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.service.MinhasMovimentacoesServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,5 +24,15 @@ public class MinhasMovimentacoesController {
     public ResponseEntity<List<MinhasMovimentacoesDto>> listarMovimentacoesPorEstoquista(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok().body(this.minhasMovimentacoesService.listarMovimentacoesEstoquista(token.getIdUsuario()));
+    }
+
+    @PutMapping("/relatorio-movimentacoes")
+    public ResponseEntity<byte[]> gerarRelatorioMovimentacoes(@RequestBody RelatorioMovimentacoesForm form, HttpServletRequest request) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        byte[] pdf = this.minhasMovimentacoesService.gerarRelatorioMovimentacoes(token.getIdUsuario(), form);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=RelatorioGenerico.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }
