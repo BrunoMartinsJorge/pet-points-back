@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 40px;
+        }
+
+        .header {
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #4CAF50;
+        }
+
+        .info {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .tipo-ERRO {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .tipo-INFO {
+            color: #1976d2;
+        }
+
+        .tipo-WARN {
+            color: #f57c00;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: right;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 th:text="${titulo}"></h1>
+    <h3 th:text="${subtitulo}"></h3>
+    <div class="info">
+        Gerado em: <span th:text="${dataGeracao}"></span>
+    </div>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th th:each="coluna : ${colunas}" th:text="${coluna.header}"></th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="item : ${dados}">
+        <td th:each="coluna : ${colunas}"
+            th:text="${coluna.valueExtractor.apply(item)}">
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Sistema de Logs • Documento gerado automaticamente
+</div>
+
+</body>
+</html>
