@@ -1,6 +1,7 @@
 package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
+import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,4 +37,11 @@ public class NotificacaoModel {
 
     @Enumerated(EnumType.STRING)
     private TiposNotificacoesEnum tipo;
+
+    public NotificacaoModel(NovaNotificacaoForm form, UsuarioModel destinatario) {
+        this.para = destinatario;
+        this.titulo = form.getTitulo();
+        this.conteudo = form.getMensagem();
+        this.tipo = form.getTipo();
+    }
 }

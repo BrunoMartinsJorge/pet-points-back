@@ -3,13 +3,11 @@ package br.com.api.petpoints.modules.users.estoquista.features.estoque.controlle
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.CardsEstoqueDto;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoDetalhesDto;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoEstoqueDto;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.FiltrosProdutoForm;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovaMovimentacaoForm;
+import br.com.api.petpoints.modules.users.estoquista.shared.dto.ProdutoEstoqueDto;
+import br.com.api.petpoints.shared.form.FiltrosProdutoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovoProdutoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.service.EstoqueServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -38,11 +36,11 @@ public class EstoqueController {
     @GetMapping("/detalhes-produto/{idProduto}")
     public ResponseEntity<ProdutoDetalhesDto> buscarDetalhesProdutoEstoque(HttpServletRequest request, @PathVariable Long idProduto) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.estoqueService.buscarDetalhesProdutosEstoque(idProduto, token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.estoqueService.buscarDetalhesProdutosEstoque(idProduto));
     }
 
     @PostMapping("/relatorio-produtos")
-    public ResponseEntity<byte[]> gerarRelatorioProdutos(FiltrosProdutoForm form){
+    public ResponseEntity<byte[]> gerarRelatorioProdutos(@RequestBody FiltrosProdutoForm form){
         byte[] pdf = this.estoqueService.gerarRelatorioProdutos(form);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=RelatorioProdutos.pdf")
@@ -53,13 +51,6 @@ public class EstoqueController {
     @PostMapping("/adicionar-novo-produto")
     public ResponseEntity<Void> cadastrarNovoProduto(@RequestBody NovoProdutoForm form) {
         this.estoqueService.registrarProduto(form);
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/realizar-movimentacao")
-    public ResponseEntity<Void> realizarNovaMovimentacao(@Valid @RequestBody NovaMovimentacaoForm form, HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.estoqueService.realizarMovimentacao(form, token.getIdUsuario());
         return ResponseEntity.ok().build();
     }
 }

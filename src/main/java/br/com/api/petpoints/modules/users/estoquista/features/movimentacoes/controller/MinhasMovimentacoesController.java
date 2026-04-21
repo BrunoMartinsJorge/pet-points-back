@@ -2,9 +2,12 @@ package br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.con
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.dto.MinhasMovimentacoesDto;
+import br.com.api.petpoints.shared.dto.ProdutoFiltroDto;
+import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.RelatorioMovimentacoesForm;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.service.MinhasMovimentacoesServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -26,6 +29,11 @@ public class MinhasMovimentacoesController {
         return ResponseEntity.ok().body(this.minhasMovimentacoesService.listarMovimentacoesEstoquista(token.getIdUsuario()));
     }
 
+    @GetMapping("/produtos-filtro")
+    public ResponseEntity<List<ProdutoFiltroDto>> buscarProdutosParaFiltro() {
+        return ResponseEntity.ok().body(this.minhasMovimentacoesService.buscarProdutosParaFiltro());
+    }
+
     @PutMapping("/relatorio-movimentacoes")
     public ResponseEntity<byte[]> gerarRelatorioMovimentacoes(@RequestBody RelatorioMovimentacoesForm form, HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
@@ -34,5 +42,12 @@ public class MinhasMovimentacoesController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=RelatorioGenerico.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+    }
+
+    @PutMapping("/realizar-movimentacao")
+    public ResponseEntity<Void> realizarNovaMovimentacao(@Valid @RequestBody NovaMovimentacaoForm form, HttpServletRequest request) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        this.minhasMovimentacoesService.realizarMovimentacao(form, token.getIdUsuario());
+        return ResponseEntity.ok().build();
     }
 }

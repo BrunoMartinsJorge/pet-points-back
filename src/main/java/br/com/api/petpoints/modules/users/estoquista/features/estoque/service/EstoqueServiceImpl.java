@@ -1,24 +1,19 @@
 package br.com.api.petpoints.modules.users.estoquista.features.estoque.service;
 
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.CardsEstoqueDto;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoDetalhesDto;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoEstoqueDto;
+import br.com.api.petpoints.modules.users.estoquista.shared.dto.ProdutoEstoqueDto;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.dto.ProdutoRelatorioDto;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.FiltrosProdutoForm;
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovaMovimentacaoForm;
+import br.com.api.petpoints.shared.form.FiltrosProdutoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovoProdutoForm;
-import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.models.MovimentacaoModel;
 import br.com.api.petpoints.shared.models.ProdutoModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.MovimentacaoRepository;
 import br.com.api.petpoints.shared.repository.ProdutoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import br.com.api.petpoints.shared.utils.RelatoriosUtils;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -26,6 +21,7 @@ import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Service
@@ -67,9 +63,9 @@ public class EstoqueServiceImpl implements EstoqueService {
     }
 
     @Override
-    public ProdutoDetalhesDto buscarDetalhesProdutosEstoque(Long idProduto, Long idUsuario) {
+    public ProdutoDetalhesDto buscarDetalhesProdutosEstoque(Long idProduto) {
         ProdutoModel produto = this.getProdutoPorId(idProduto);
-        List<MovimentacaoModel> movimentacoes = this.movimentacaoRepository.findAllByProduto_IdAndMovimentadoPor_Id(idProduto, idUsuario);
+        List<MovimentacaoModel> movimentacoes = this.movimentacaoRepository.findAllByProduto_Id(idProduto);
         return new ProdutoDetalhesDto(produto, movimentacoes);
     }
 
@@ -88,19 +84,6 @@ public class EstoqueServiceImpl implements EstoqueService {
         this.produtoRepository.save(new ProdutoModel(form));
     }
 
-    @Override
-    @Transactional
-    public void realizarMovimentacao(NovaMovimentacaoForm form, Long idUsuario) {
-        ProdutoModel produto = this.getProdutoPorId(form.getIdProduto());
-        UsuarioModel usuario = this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("O usuário com ID: " + idUsuario + " não foi encontrado!"));
-        if (form.getTipoMovimentacao() == TipoMovimentacaoEnum.SAIDA && (produto.getQuantidadeEstoque() < form.getQuantidadeMovimentada()))
-            throw new RuntimeException("O produto não possui quantidade suficiente para realizar a saida!"); // Illegal
-        int quantidade = form.getTipoMovimentacao() == TipoMovimentacaoEnum.ENTRADA ? produto.getQuantidadeEstoque() + form.getQuantidadeMovimentada() : produto.getQuantidadeEstoque() - form.getQuantidadeMovimentada();
-        produto.setQuantidadeEstoque(quantidade);
-        this.produtoRepository.save(produto);
-        this.movimentacaoRepository.save(new MovimentacaoModel(form, usuario, produto));
-    }
-
     private List<ProdutoRelatorioDto> filtrarProdutosRelatorios(FiltrosProdutoForm form, List<ProdutoModel> produtos) {
         Stream<ProdutoModel> stream = produtos.stream();
 
@@ -108,23 +91,24 @@ public class EstoqueServiceImpl implements EstoqueService {
             stream = stream.filter(produto -> produto.getNome().contains(form.getNome()));
         }
 
-        if (form.getTipoProduto() != null) {
+        if (!Objects.equals(form.getTipoProduto(), "")) {
             stream = stream.filter(produto ->
-                    produto.getTipo() == form.getTipoProduto()
+                    Objects.equals(produto.getTipo().toString(), form.getTipoProduto())
             );
         }
 
-        if (form.isQuantidadeAbaixoEstoque()) {
+        if (!form.isTodosOsProdutos()) {
             stream = stream.filter(produto ->
                     produto.getQuantidadeEstoque() < produto.getQuantidadeMinima()
             );
         }
+        if (form.getPrecoMin() != null) {
+            stream = stream.filter(produto ->
+                    produto.getValorUnitario() >= form.getPrecoMin()
+            );
+        }
 
-        stream = stream.filter(produto ->
-                produto.getValorUnitario() >= form.getPrecoMin()
-        );
-
-        if (form.getPrecoMax() > 0) {
+        if (form.getPrecoMax() != null) {
             stream = stream.filter(produto ->
                     produto.getValorUnitario() <= form.getPrecoMax()
             );

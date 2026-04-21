@@ -2,6 +2,7 @@ package br.com.api.petpoints.core.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.stereotype.Component;
 
 @Configuration
 @EnableWebSecurity
@@ -21,9 +23,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class ConfigSecurity {
 
     private final SecurityFilter securityFilter;
+    private final WebSocketAuthInterceptor authChannelInterceptor;
 
-    public ConfigSecurity(SecurityFilter securityFilter) {
+    public ConfigSecurity(SecurityFilter securityFilter, WebSocketAuthInterceptor authChannelInterceptor) {
         this.securityFilter = securityFilter;
+        this.authChannelInterceptor = authChannelInterceptor;
     }
 
     @Bean
@@ -38,7 +42,7 @@ public class ConfigSecurity {
                         .requestMatchers("/autenticacao/**").permitAll()
 
                         .requestMatchers("/ws/chat-interno/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE", "RULE_REST_DOUTORES")
-                        .requestMatchers("/ws/notifications/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE", "RULE_REST_DOUTORES", "RULE_REST_CLIENTE")
+                        .requestMatchers("/ws/notificacoes/**").permitAll()
                         .requestMatchers("/ws/chat-atendimento/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_CLIENTE")
 
                         /*.requestMatchers("/arquivos/**").permitAll()*/

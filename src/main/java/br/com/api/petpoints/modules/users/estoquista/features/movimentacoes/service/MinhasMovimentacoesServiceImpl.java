@@ -2,18 +2,23 @@ package br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.ser
 
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.dto.MinhasMovimentacoesDto;
+import br.com.api.petpoints.shared.dto.ProdutoFiltroDto;
+import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.RelatorioMovimentacoesForm;
+import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
+import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.models.MovimentacaoModel;
+import br.com.api.petpoints.shared.models.ProdutoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.MovimentacaoRepository;
+import br.com.api.petpoints.shared.repository.ProdutoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.ColunaRelatorio;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import br.com.api.petpoints.shared.utils.RelatoriosUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.util.List;
 
@@ -24,10 +29,20 @@ public class MinhasMovimentacoesServiceImpl implements MinhasMovimentacoesServic
     private final UsuarioRepository usuarioRepository;
     private final MovimentacaoRepository movimentacaoRepository;
     private final RelatoriosUtils relatoriosUtils;
+    private final ProdutoRepository produtoRepository;
+
+    private ProdutoModel getProdutoPorId(Long idProduto) {
+        return this.produtoRepository.findById(idProduto).orElseThrow(() -> new ObjectNotFoundException("Produto com ID: " + idProduto + " não encontrado!"));
+    }
 
     @Override
     public List<MinhasMovimentacoesDto> listarMovimentacoesEstoquista(Long idUsuario) {
         return MinhasMovimentacoesDto.convert(this.movimentacaoRepository.findAllByMovimentadoPor_Id(idUsuario));
+    }
+
+    @Override
+    public List<ProdutoFiltroDto> buscarProdutosParaFiltro() {
+        return ProdutoFiltroDto.convert(this.produtoRepository.findAll());
     }
 
     @Override
@@ -40,9 +55,22 @@ public class MinhasMovimentacoesServiceImpl implements MinhasMovimentacoesServic
                 new ColunaRelatorio("ID", m -> ((MovimentacaoModel) m).getId()),
                 new ColunaRelatorio("Tipo", m -> ((MovimentacaoModel) m).getTipo()),
                 new ColunaRelatorio("Data Hora", m -> (LocalDateTimeUtils.converterLocalDateTimeParaPtBr(((MovimentacaoModel) m).getMovimentadoEm()))),
-                new ColunaRelatorio("Quantidade", m -> ((MovimentacaoModel) m).getQuantidadeMovimentada()),
+                new ColunaRelatorio("Quantidade", m -> (((MovimentacaoModel) m).getQuantidadeMovimentada() + " Unidades")),
                 new ColunaRelatorio("Produto", m -> ((MovimentacaoModel) m).getProduto().getNome())
         );
         return this.relatoriosUtils.gerarRelatorioGenerico(colunas, movimentacoes, titulo, subtitulo);
+    }
+
+    @Override
+    @Transactional
+    public void realizarMovimentacao(NovaMovimentacaoForm form, Long idUsuario) {
+        ProdutoModel produto = this.getProdutoPorId(form.getIdProduto());
+        UsuarioModel usuario = this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("O usuário com ID: " + idUsuario + " não foi encontrado!"));
+        if (form.getTipoMovimentacao() == TipoMovimentacaoEnum.SAIDA && (produto.getQuantidadeEstoque() < form.getQuantidadeMovimentada()))
+            throw new RuntimeException("O produto não possui quantidade suficiente para realizar a saida!"); // Illegal
+        int quantidade = form.getTipoMovimentacao() == TipoMovimentacaoEnum.ENTRADA ? produto.getQuantidadeEstoque() + form.getQuantidadeMovimentada() : produto.getQuantidadeEstoque() - form.getQuantidadeMovimentada();
+        produto.setQuantidadeEstoque(quantidade);
+        this.produtoRepository.save(produto);
+        this.movimentacaoRepository.save(new MovimentacaoModel(form, usuario, produto));
     }
 }

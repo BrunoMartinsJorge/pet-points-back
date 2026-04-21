@@ -1,4 +1,4 @@
-package br.com.api.petpoints.modules.users.estoquista.features.estoque.dto;
+package br.com.api.petpoints.modules.users.estoquista.shared.dto;
 
 import br.com.api.petpoints.shared.enums.TipoProdutoEnum;
 import br.com.api.petpoints.shared.models.ProdutoModel;
