@@ -19,7 +19,7 @@ public class EspecializacaoModel {
     private Long id;
 
     @OneToMany
-    @JoinColumn(name = "veterinario_id")
+    @JoinColumn(name = "usuario_id")
     private Set<UsuarioModel> veterinarios;
 
     private String descricao;

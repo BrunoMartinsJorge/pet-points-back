@@ -1,7 +1,6 @@
 package br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.service;
 
-import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.ConsultasPendentesConfirmadasDto;
-import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
+import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.*;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
@@ -11,21 +10,20 @@ import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.exception.custom.PerfilDesativadoException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
-import br.com.api.petpoints.shared.models.ConsultaModel;
-import br.com.api.petpoints.shared.models.PetModel;
-import br.com.api.petpoints.shared.models.TipoConsultaModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.ConsultaRepository;
-import br.com.api.petpoints.shared.repository.PetRepository;
-import br.com.api.petpoints.shared.repository.TipoConsultaRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.*;
+import br.com.api.petpoints.shared.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +34,8 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final PetRepository petRepository;
     private final TipoConsultaRepository tipoConsultaRepository;
     private final LogsServiceImpl logsService;
+    private final AvaliacaoRepository avaliacaoRepository;
+    private final EspecializacaoRepository especializacaoRepository;
 
     @Override
     public List<ConsultasPendentesConfirmadasDto> listarConsultasPendentes(Long idUsuario) {
@@ -56,12 +56,16 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
     }
 
+    private TipoConsultaModel getTipoConsultaPorId(Long idTipoConsulta) {
+        return this.tipoConsultaRepository.findById(idTipoConsulta).orElseThrow(() -> new ObjectNotFoundException("Tipo de Consulta com ID: " + idTipoConsulta));
+    }
+
     private PetModel getPetPorId(Long idPet) {
-        return this.petRepository.findById(idPet).orElseThrow(() -> new UsuarioNaoEncontrado("Consulta com ID: " + idPet + " não encontrado!"));
+        return this.petRepository.findById(idPet).orElseThrow(() -> new ObjectNotFoundException("Pet com ID: " + idPet + " não encontrado!"));
     }
 
     private ConsultaModel getConsultaPorId(Long idConsulta) {
-        return this.consultaRepository.findById(idConsulta).orElseThrow(() -> new UsuarioNaoEncontrado("Consulta com ID: " + idConsulta + " não encontrada!"));
+        return this.consultaRepository.findById(idConsulta).orElseThrow(() -> new ObjectNotFoundException("Consulta com ID: " + idConsulta + " não encontrada!"));
     }
 
     @Override
@@ -97,8 +101,47 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         this.logsService.registrarLog(cliente, TipoLogEnum.CANCELOU_CONSULTA);
     }
 
+    @Override
+    public List<TiposConsultaDto> listarTiposConsulta() {
+        List<TipoConsultaModel> tipos = this.tipoConsultaRepository.findAll();
+        return TiposConsultaDto.convert(tipos);
+    }
+
+    @Override
+    public List<VeterinariosTipoConsultaDto> listarVeterinariosTipoConsulta(Long idTipoConsulta) {
+        TipoConsultaModel tipoConsulta = this.getTipoConsultaPorId(idTipoConsulta);
+        List<VeterinariosTipoConsultaDto> dto = new ArrayList<>();
+        for (UsuarioModel veterinario : tipoConsulta.getVeterinarios()) {
+            List<AvaliacaoModel> avaliacoes = this.consultaRepository.findAllByVeterinario_Id(veterinario.getId()).stream().map(ConsultaModel::getAvaliacao).toList();
+            double avaliacao = 0;
+            for (AvaliacaoModel avaliacaoModel : avaliacoes) {
+                avaliacao += avaliacaoModel.getPontuacao();
+            }
+            avaliacao = avaliacao / avaliacoes.size();
+            List<EspecializacaoModel> especializacoes = this.especializacaoRepository.buscarPorVeterinario(veterinario);
+            dto.add(new VeterinariosTipoConsultaDto(veterinario, especializacoes, avaliacao));
+        }
+        return dto;
+    }
+
+    @Override
+    public List<DiaConsultasVeterinarioDto> buscarDiasHorariosDisponiveisVeterinario(Long idVeterinario) {
+        Map<LocalDateTime, List<ConsultaModel>> consultas = this.consultaRepository.findAllByVeterinario_Id(idVeterinario).stream().filter(consulta -> consulta.getDataConsulta().toLocalDate().isEqual(LocalDate.now()) || consulta.getDataConsulta().toLocalDate().isBefore(LocalDate.now())).collect(Collectors.groupingBy(ConsultaModel::getDataConsulta));
+        return consultas.entrySet().stream().map(value -> {
+            LocalDate data = value.getKey().toLocalDate();
+            List<LocalTime> horarios = value.getValue().stream().map(datas -> datas.getDataConsulta().toLocalTime()).toList();
+            return new DiaConsultasVeterinarioDto(data, horarios);
+        }).toList();
+    }
+
+    @Override
+    public List<OpcoesPetConsultasDto> buscarPetsConsulta(Long idUsuario) {
+        List<PetModel> pets = this.petRepository.findAllByTutor_Id(idUsuario);
+        return OpcoesPetConsultasDto.convert(pets);
+    }
+
     private void validarSolicitacaoDeConsulta(Long idUsuario, SolicitacaoConsultaForm form) {
-        List<ConsultaModel> consultasPagamentosPendentes = this.consultaRepository.findAllBySolicitante_IdAndPagamentoIsNull(idUsuario).stream().filter(consulta -> consulta.getStatus() != StatusConsultaEnum.PENDENTE).toList();
+        /*List<ConsultaModel> consultasPagamentosPendentes = this.consultaRepository.findAllBySolicitante_IdAndPagamentoIsNull(idUsuario).stream().filter(consulta -> consulta.getStatus() != StatusConsultaEnum.PENDENTE).toList();*/
         // if (!consultasPagamentosPendentes.isEmpty()) throw new RuntimeException("Você ainda tem pagamentos pendentes!");
         LocalDateTime dataSolicitada = form.getDataConsulta();
         List<ConsultaModel> consultasDoVeterinario =

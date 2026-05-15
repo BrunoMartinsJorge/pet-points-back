@@ -29,4 +29,5 @@ public class FuncionarioForm {
     private LocalDate dataNascimento;
     @NotNull(message = "O campo 'permissao' não pode estar nulo!")
     private TipoUsuario permissao;
+    private Long especializacao;
 }

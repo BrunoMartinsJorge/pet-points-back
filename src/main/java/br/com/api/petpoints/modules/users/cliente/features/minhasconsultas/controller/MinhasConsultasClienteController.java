@@ -1,8 +1,7 @@
 package br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.controller;
 
 import br.com.api.petpoints.core.token.TokenModel;
-import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.ConsultasPendentesConfirmadasDto;
-import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
+import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.*;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.service.MinhasConsultasClienteServiceImpl;
@@ -31,6 +30,27 @@ public class MinhasConsultasClienteController {
     public ResponseEntity<List<MinhasConsultasDto>> listarMinhasConsultas(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok(this.minhasConsultasClienteServiceImpl.listarMinhasConsultas(token.getIdUsuario()));
+    }
+
+    @GetMapping("/tipos-consulta")
+    public ResponseEntity<List<TiposConsultaDto>> buscarTiposConsultaParaSolicitacao(){
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarTiposConsulta());
+    }
+
+    @GetMapping("/veterinarios-tipo-consulta/{idTipoConsulta}")
+    public ResponseEntity<List<VeterinariosTipoConsultaDto>> buscarVeterinariosTipoConsultaParaSolicitacao(@PathVariable Long idTipoConsulta) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarVeterinariosTipoConsulta(idTipoConsulta));
+    }
+
+    @GetMapping("/horarios/{idVeterinario}")
+    public ResponseEntity<List<DiaConsultasVeterinarioDto>> buscarHorariosParaSolicitacao(@PathVariable Long idVeterinario) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarDiasHorariosDisponiveisVeterinario(idVeterinario));
+    }
+
+    @GetMapping("/pets")
+    public ResponseEntity<List<OpcoesPetConsultasDto>> buscarPetsClienteConsulta(HttpServletRequest request) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarPetsConsulta(token.getIdUsuario()));
     }
 
     @PostMapping("/solicitar")

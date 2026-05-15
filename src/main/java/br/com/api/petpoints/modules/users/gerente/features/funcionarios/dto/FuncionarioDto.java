@@ -1,5 +1,6 @@
 package br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto;
 
+import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import br.com.api.petpoints.shared.utils.LocalDateUtils;
@@ -19,7 +20,7 @@ public class FuncionarioDto {
     private String nome;
     private String cpf;
     private String telefone;
-    private String genero;
+    private GeneroEnum genero;
     private String dataNascimento;
     private String dataCadastro;
     private String permissao;
@@ -31,7 +32,7 @@ public class FuncionarioDto {
         this.nome = usuario.getNome();
         this.cpf = usuario.getCpf();
         this.telefone = usuario.getTelefone();
-        this.genero = usuario.getGenero().getDescricao();
+        this.genero = usuario.getGenero();
         this.dataNascimento = LocalDateUtils.converterLocalDateParaPtBr(usuario.getDataNascimento());
         this.dataCadastro = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(usuario.getDataCadastro());
         this.permissao = usuario.getPermissao().getDescricao();

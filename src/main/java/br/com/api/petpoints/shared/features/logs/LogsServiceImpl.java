@@ -51,17 +51,21 @@ public class LogsServiceImpl implements LogsService {
         return switch (tipoLog) {
             case LOGIN -> "O usuário " + usuario.getEmail() + " efetuou login!";
             case REGISTRO -> "Um novo usuário foi registrado ao sistema: " + usuario.getEmail();
-            case CANCELOU_CONSULTA -> "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Cancelou uma consulta!";
+            case CANCELOU_CONSULTA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Cancelou uma consulta!";
+            case EDITOU_TIPO_CONSULTA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Editou as informações de um tipo de consulta!";
             default -> "";
         };
     }
 
     private UsuarioModel buscarUsuario(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
-        if (token == null || token.isEmpty() || !token.startsWith("Bearer ")) return null;
+        if (token == null || !token.startsWith("Bearer ")) return null;
         TokenModel tokenDecoded = TokenService.converterTokenParaModel(request.getHeader("Authorization"));
         Optional<UsuarioModel> usuario = this.usuarioRepository.findById(tokenDecoded.getIdUsuario());
-        if (usuario.isEmpty()) throw new UsuarioNaoEncontrado("Usuário não encontrado com ID: " + tokenDecoded.getIdUsuario() + "!");
+        if (usuario.isEmpty())
+            throw new UsuarioNaoEncontrado("Usuário não encontrado com ID: " + tokenDecoded.getIdUsuario() + "!");
         return usuario.get();
     }
 }

@@ -1,8 +1,14 @@
 package br.com.api.petpoints.core.initializer;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
+import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
+import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
+import br.com.api.petpoints.shared.models.EspecializacaoModel;
+import br.com.api.petpoints.shared.models.TipoConsultaModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.EspecializacaoRepository;
+import br.com.api.petpoints.shared.repository.TipoConsultaRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
@@ -12,11 +18,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Configuration
 @RequiredArgsConstructor
 public class UsuariosPadroes implements CommandLineRunner {
     private final UsuarioRepository usuarioRepository;
+    private final EspecializacaoRepository especializacaoRepository;
+    private final TipoConsultaRepository tipoConsultaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -73,9 +82,10 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.E);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
+        UsuarioModel vet = this.usuarioRepository.findById(12L).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + 12 + " não encontrado!"));
     }
 
-    private void limpar(){
+    private void limpar() {
         this.usuarioRepository.deleteAll(this.usuarioRepository.findAllByPermissao(TipoUsuario.A));
     }
 }

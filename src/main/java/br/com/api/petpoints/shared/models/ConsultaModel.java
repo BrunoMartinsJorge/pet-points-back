@@ -29,7 +29,7 @@ public class ConsultaModel {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_consulta")
-    private StatusConsultaEnum status;
+    private StatusConsultaEnum status = StatusConsultaEnum.PENDENTE;
 
     @ManyToOne
     @JoinColumn(name = "solicitante_id")

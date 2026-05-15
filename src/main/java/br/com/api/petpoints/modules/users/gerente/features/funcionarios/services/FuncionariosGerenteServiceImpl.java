@@ -1,26 +1,35 @@
 package br.com.api.petpoints.modules.users.gerente.features.funcionarios.services;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.AvaliacoesDto;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.ConsultaFuncionarioDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.FuncionarioDto;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.MovimentacoesEstoquistasDto;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FiltroFuncionariosForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FuncionarioForm;
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.shared.dto.OpcoesDto;
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
+import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
-import br.com.api.petpoints.shared.models.AtendimentoModel;
-import br.com.api.petpoints.shared.models.ConsultaModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.AtendimentoRepository;
-import br.com.api.petpoints.shared.repository.ConsultaRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.*;
+import br.com.api.petpoints.shared.repository.*;
+import br.com.api.petpoints.shared.utils.ColunaRelatorio;
+import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
+import br.com.api.petpoints.shared.utils.RelatoriosUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +40,9 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
     private final AtendimentoRepository atendimentoRepository;
     private final PasswordEncoder passwordEncoder;
     private final LogsServiceImpl logsService;
+    private final RelatoriosUtils relatoriosUtils;
+    private final EspecializacaoRepository especializacaoRepository;
+    private final MovimentacaoRepository movimentacaoRepository;
 
     private UsuarioModel getUsuarioPorId(Long idFuncionario) {
         return this.usuarioRepository.findById(idFuncionario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idFuncionario + " não encontrado!"));
@@ -49,10 +61,22 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
     }
 
     @Override
+    public Set<OpcoesDto> listarEspecializacoes() {
+        List<EspecializacaoModel> especializacoes = this.especializacaoRepository.findAll();
+        return especializacoes.stream().map(especializacao -> new OpcoesDto(especializacao.getDescricao(), especializacao.getId())).collect(Collectors.toSet());
+    }
+
+    @Override
     @Transactional
     public FuncionarioDto cadastrarNovoFuncionario(FuncionarioForm form) {
         UsuarioModel novoFuncionario = new UsuarioModel(form, passwordEncoder.encode(form.getSenha()));
-        return new FuncionarioDto(usuarioRepository.save(novoFuncionario));
+        novoFuncionario = (usuarioRepository.save(novoFuncionario));
+        if (form.getEspecializacao() != null && form.getPermissao().equals(TipoUsuario.V)) {
+            EspecializacaoModel especializacao = this.especializacaoRepository.findById(form.getEspecializacao()).orElseThrow(() -> new ObjectNotFoundException("Especialização com ID: " + form.getEspecializacao() + " não encontrado!"));
+            especializacao.getVeterinarios().add(novoFuncionario);
+            this.especializacaoRepository.save(especializacao);
+        }
+        return new FuncionarioDto(novoFuncionario);
     }
 
     @Override
@@ -84,7 +108,64 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
         }
         funcionario.setStatusPerfilEnum(StatusPerfilEnum.D);
         this.usuarioRepository.save(funcionario);
-        // this.logsService.registrarLog(gerente, );
+    }
+
+    @Override
+    public byte[] gerarRelatorioFuncionarios(FiltroFuncionariosForm form) {
+        List<UsuarioModel> funcionarios = this.filtrarFuncionarios(form);
+        String titulo = "Relatório de Funcionários da Clínica";
+        List<ColunaRelatorio> colunas = List.of(new ColunaRelatorio("Nome", m -> ((UsuarioModel) m).getNome()), new ColunaRelatorio("Email", m -> ((UsuarioModel) m).getEmail()), new ColunaRelatorio("Gênero", m -> ((UsuarioModel) m).getGenero().getDescricao()), new ColunaRelatorio("Cargo", m -> ((UsuarioModel) m).getPermissao().getDescricao()), new ColunaRelatorio("CPF", m -> ((UsuarioModel) m).getCpf()), new ColunaRelatorio("Registrado Em", m -> (LocalDateTimeUtils.converterLocalDateTimeParaPtBr(((UsuarioModel) m).getDataCadastro()))));
+        return this.relatoriosUtils.gerarRelatorioGenerico(colunas, funcionarios, titulo, "");
+    }
+
+    @Override
+    public List<AvaliacoesDto> buscarAvaliacoesPorId(Long id) {
+        UsuarioModel funcionario = this.getUsuarioPorId(id);
+        List<AvaliacaoModel> avaliacoes = new ArrayList<>();
+        if (funcionario.getPermissao().equals(TipoUsuario.A))
+            avaliacoes = this.buscarAvaliacoesAtendente(id);
+        else if (funcionario.getPermissao().equals(TipoUsuario.V))
+            avaliacoes = this.buscarAvaliacoesVeterinario(id);
+        return AvaliacoesDto.convert(avaliacoes);
+    }
+
+    @Override
+    public List<ConsultaFuncionarioDto> buscarConsultasPorId(Long id) {
+        UsuarioModel usuario = this.getUsuarioPorId(id);
+        List<ConsultaModel> consultas;
+        if (usuario.getPermissao().equals(TipoUsuario.V)){
+            consultas = this.consultaRepository.findAllByVeterinario_Id(id);
+        } else if(usuario.getPermissao().equals(TipoUsuario.A)){
+            consultas = this.consultaRepository.findAllByAtendente_Id(id);
+        } else{
+            throw new RuntimeException("Funcionário não tem acesso as consultas!");
+        }
+        return ConsultaFuncionarioDto.convert(consultas);
+    }
+
+    @Override
+    public List<MovimentacoesEstoquistasDto> buscarMovimentacoesPorId(Long id) {
+        List<MovimentacaoModel> movimentacoes = this.movimentacaoRepository.findAllByMovimentadoPor_Id(id);
+        return MovimentacoesEstoquistasDto.convert(movimentacoes);
+    }
+
+    private List<AvaliacaoModel> buscarAvaliacoesAtendente(Long idAtendente) {
+        return this.atendimentoRepository.buscarAvaliacoesAtendimento(idAtendente, StatusAtendimentoEnum.FINALIZADO).stream().map(AtendimentoModel::getAvaliacao).toList();
+    }
+
+    private List<AvaliacaoModel> buscarAvaliacoesVeterinario(Long idVeterinario) {
+        return this.consultaRepository.buscarConsultaPorStatusIdVeterinario(idVeterinario, StatusConsultaEnum.FINALIZADO).stream().map(ConsultaModel::getAvaliacao).toList();
+    }
+
+    private List<UsuarioModel> filtrarFuncionarios(FiltroFuncionariosForm form) {
+        List<UsuarioModel> funcionarios = this.usuarioRepository.findAllByPermissaoNot(TipoUsuario.C);
+        if (form.getNome() != null && !form.getNome().isEmpty())
+            funcionarios = funcionarios.stream().filter(funcionario -> funcionario.getNome().toLowerCase().contains(form.getNome().toLowerCase())).toList();
+        if (form.getEmail() != null && !form.getEmail().isEmpty())
+            funcionarios = funcionarios.stream().filter(funcionario -> funcionario.getEmail().toLowerCase().contains(form.getEmail().toLowerCase())).toList();
+        if (form.getTipo() != null && !form.getTipo().isEmpty())
+            funcionarios = funcionarios.stream().filter(funcionario -> Objects.equals(funcionario.getPermissao().toString(), form.getTipo())).toList();
+        return funcionarios;
     }
 
     private void validarAtendente(Long idAtendented) {
@@ -94,11 +175,8 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
     }
 
     private void validarVeterinario(Long idVeterinario) {
-        List<ConsultaModel> consultasPendentes = this.consultaRepository.findAllByVeterinario_Id(idVeterinario).stream().filter(consulta ->
-                !consulta.getStatus().equals(StatusConsultaEnum.INICIADO) && !consulta.getStatus().equals(StatusConsultaEnum.PENDENTE)
-        ).toList();
-        if (!consultasPendentes.isEmpty())
-            throw new RuntimeException("O veterinário possui consultas pendentes!");
+        List<ConsultaModel> consultasPendentes = this.consultaRepository.findAllByVeterinario_Id(idVeterinario).stream().filter(consulta -> !consulta.getStatus().equals(StatusConsultaEnum.INICIADO) && !consulta.getStatus().equals(StatusConsultaEnum.PENDENTE)).toList();
+        if (!consultasPendentes.isEmpty()) throw new RuntimeException("O veterinário possui consultas pendentes!");
     }
 
     private UsuarioModel alterarDados(UsuarioModel usuario, FuncionarioForm form) {
