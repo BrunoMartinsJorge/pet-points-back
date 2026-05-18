@@ -33,6 +33,7 @@ public class TokenService {
                     .withClaim("id_usuario", usuario.getId())
                     .withClaim("nomeUsuario", usuario.getNome())
                     .withClaim("permissao", usuario.getPermissao().getDescricao())
+                    .withClaim("imagem", usuario.getImagem() != null ? usuario.getImagem().toString() : "")
                     .withExpiresAt(geradorDeDataDeExpiracao())
                     .sign(algorithm);
         } catch (JWTCreationException e) {

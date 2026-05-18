@@ -10,7 +10,9 @@ import br.com.api.petpoints.modules.auth.exception.UsuarioJaCadastrado;
 import br.com.api.petpoints.modules.auth.forms.RegistroForm;
 import br.com.api.petpoints.modules.auth.model.TokenRecuperarSenhaModel;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
+import br.com.api.petpoints.shared.models.ArquivosModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.ArquivoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
@@ -23,12 +25,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +48,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final SpringTemplateEngine templateEngine;
     private final JavaMailSenderImpl mailSender;
     private final TokenRecuperarSenhaRepository tokenRecuperarSenhaRepository;
+    private final ArquivoRepository arquivoRepository;
 
     private UsuarioModel getUsuarioPorId(Long idUsuario) {
         return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario + " não encontrado!"));
@@ -51,14 +59,35 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
-    public TokenDto registrarUsuario(RegistroForm registroForm) {
+    public TokenDto registrarUsuario(RegistroForm registroForm, MultipartFile arquivo) {
         if (usuarioRepository.existsByEmailOrCpf(registroForm.getEmail(), registroForm.getCpf()))
             throw new UsuarioJaCadastrado("Usuário já cadastrado!");
         UsuarioModel usuario = new UsuarioModel(registroForm, TipoUsuario.C, passwordEncoder.encode(registroForm.getSenha()));
+        usuario.setImagem(this.salvarArquivo(arquivo));
         usuario = usuarioRepository.save(usuario);
         return new TokenDto(
                 this.tokenService.gerarToken(usuario)
         );
+    }
+
+    private UUID salvarArquivo(MultipartFile form) {
+        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
+        List<String> tiposPermitidos = List.of(
+                "image/png",
+                "image/jpeg",
+                "application/pdf"
+        );
+        if (!tiposPermitidos.contains(form.getContentType()))
+            throw new RuntimeException("Tipo inválido");
+        ArquivosModel arquivo = new ArquivosModel();
+        try {
+            arquivo.setConteudo(form.getBytes());
+            arquivo.setNome(form.getOriginalFilename());
+            arquivo.setTipo(form.getContentType());
+            return this.arquivoRepository.save(arquivo).getId();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -133,6 +162,11 @@ public class UsuarioServiceImpl implements UsuarioService {
         this.usuarioRepository.save(usuario);
         tokenRecuperarSenha.setUsed(true);
         this.tokenRecuperarSenhaRepository.save(tokenRecuperarSenha);
+    }
+
+    @Override
+    public ArquivosModel buscarImagemUsuario(UUID id) {
+        return this.arquivoRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Arquivo não encontrado!"));
     }
 
     private String gerarCodigoAlfanumerico() {

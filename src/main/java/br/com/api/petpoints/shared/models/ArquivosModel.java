@@ -24,9 +24,9 @@ public class ArquivosModel {
 
     private String tipo;
 
-    private Long descricao;
+    private Long tamanho;
 
     @Lob
-    @Column(columnDefinition = "bytea")
+    @Basic(fetch = FetchType.LAZY)
     private byte[] conteudo;
 }
