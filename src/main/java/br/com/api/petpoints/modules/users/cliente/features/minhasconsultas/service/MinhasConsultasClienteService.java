@@ -8,8 +8,10 @@ import java.util.List;
 
 public interface MinhasConsultasClienteService {
 
-    List<?> listarConsultasPendentes(Long idUsuario);
+    List<MinhasConsultasDto> listarConsultasAprovadas(Long idUsuario);
     List<MinhasConsultasDto> listarMinhasConsultas(Long idUsuario);
+    List<MinhasConsultasDto> listarConsultasPendentes(Long idUsuario);
+    DetalhesConsultaSelecionadaDto buscarDetalhesConsulta(Long idConsulta);
     MinhasConsultasDto solicitarNovaConsulta(Long idUsuario, SolicitacaoConsultaForm form);
     void cancelarConsulta(Long idUsuario, CancelarConsultaForm form);
     List<TiposConsultaDto> listarTiposConsulta();

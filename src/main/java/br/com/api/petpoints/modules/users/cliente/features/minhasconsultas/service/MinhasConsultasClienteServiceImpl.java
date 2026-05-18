@@ -38,8 +38,8 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final EspecializacaoRepository especializacaoRepository;
 
     @Override
-    public List<ConsultasPendentesConfirmadasDto> listarConsultasPendentes(Long idUsuario) {
-        return ConsultasPendentesConfirmadasDto.convert(this.consultaRepository.buscarConsultasPendentesOuConfirmadasPorUsuario(idUsuario));
+    public List<MinhasConsultasDto> listarConsultasAprovadas(Long idUsuario) {
+        return MinhasConsultasDto.convert(this.consultaRepository.buscarConsultasConfirmadasPorUsuario(idUsuario));
     }
 
     @Override
@@ -48,8 +48,19 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         if (usuario.isEmpty()) throw new UsuarioNaoEncontrado("Usuário com ID " + idUsuario + " não encontrado!");
         if (usuario.get().getStatusPerfilEnum().equals(StatusPerfilEnum.D))
             throw new PerfilDesativadoException("Perfil com email " + usuario.get().getEmail() + " desabilitado!");
-        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
+        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta -> !consulta.getStatus().equals(StatusConsultaEnum.PENDENTE)).toList();
         return minhasConsultas.stream().map(MinhasConsultasDto::new).toList();
+    }
+
+    @Override
+    public List<MinhasConsultasDto> listarConsultasPendentes(Long idUsuario) {
+        return MinhasConsultasDto.convert(this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.PENDENTE));
+    }
+
+    @Override
+    public DetalhesConsultaSelecionadaDto buscarDetalhesConsulta(Long idConsulta) {
+        ConsultaModel consulta = this.consultaRepository.findById(idConsulta).orElseThrow(() -> new ObjectNotFoundException("Consulta com ID: " + idConsulta + " não encontrada!"));
+        return new DetalhesConsultaSelecionadaDto(consulta);
     }
 
     private UsuarioModel getUsuarioPorId(Long idUsuario) {
@@ -103,7 +114,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     public List<TiposConsultaDto> listarTiposConsulta() {
-        List<TipoConsultaModel> tipos = this.tipoConsultaRepository.findAll();
+        List<TipoConsultaModel> tipos = this.tipoConsultaRepository.findAll().stream().filter(tipo -> !tipo.getVeterinarios().isEmpty()).toList();
         return TiposConsultaDto.convert(tipos);
     }
 
@@ -112,10 +123,11 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         TipoConsultaModel tipoConsulta = this.getTipoConsultaPorId(idTipoConsulta);
         List<VeterinariosTipoConsultaDto> dto = new ArrayList<>();
         for (UsuarioModel veterinario : tipoConsulta.getVeterinarios()) {
-            List<AvaliacaoModel> avaliacoes = this.consultaRepository.findAllByVeterinario_Id(veterinario.getId()).stream().map(ConsultaModel::getAvaliacao).toList();
+            List<ConsultaModel> avaliacoes = this.consultaRepository.findAllByVeterinario_Id(veterinario.getId());
             double avaliacao = 0;
-            for (AvaliacaoModel avaliacaoModel : avaliacoes) {
-                avaliacao += avaliacaoModel.getPontuacao();
+            for (ConsultaModel consulta : avaliacoes) {
+                if (consulta.getAvaliacao() == null) break;
+                avaliacao += consulta.getAvaliacao().getPontuacao();
             }
             avaliacao = avaliacao / avaliacoes.size();
             List<EspecializacaoModel> especializacoes = this.especializacaoRepository.buscarPorVeterinario(veterinario);

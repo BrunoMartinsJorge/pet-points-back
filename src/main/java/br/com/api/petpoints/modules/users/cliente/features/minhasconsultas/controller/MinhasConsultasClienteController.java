@@ -20,8 +20,14 @@ public class MinhasConsultasClienteController {
 
     private final MinhasConsultasClienteServiceImpl minhasConsultasClienteServiceImpl;
 
-    @GetMapping("/consultas-pendentes-confirmadas")
-    public ResponseEntity<List<ConsultasPendentesConfirmadasDto>> listarConsultasConfirmadasPendentesOuIniciadasDoCliente(HttpServletRequest request) {
+    @GetMapping("/consultas-confirmadas")
+    public ResponseEntity<List<MinhasConsultasDto>> listarConsultasConfirmadasOuIniciadasDoCliente(HttpServletRequest request) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasAprovadas(token.getIdUsuario()));
+    }
+
+    @GetMapping("/consultas-pendentes")
+    public ResponseEntity<List<MinhasConsultasDto>> listarConsultasPendentesDoCliente(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasPendentes(token.getIdUsuario()));
     }
@@ -32,8 +38,13 @@ public class MinhasConsultasClienteController {
         return ResponseEntity.ok(this.minhasConsultasClienteServiceImpl.listarMinhasConsultas(token.getIdUsuario()));
     }
 
+    @GetMapping("/detalhes/{idConsulta}")
+    public ResponseEntity<DetalhesConsultaSelecionadaDto> buscarDetalhesConsulta(@PathVariable Long idConsulta) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarDetalhesConsulta(idConsulta));
+    }
+
     @GetMapping("/tipos-consulta")
-    public ResponseEntity<List<TiposConsultaDto>> buscarTiposConsultaParaSolicitacao(){
+    public ResponseEntity<List<TiposConsultaDto>> buscarTiposConsultaParaSolicitacao() {
         return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarTiposConsulta());
     }
 
