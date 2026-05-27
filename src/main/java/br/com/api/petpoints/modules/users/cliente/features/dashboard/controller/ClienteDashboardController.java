@@ -3,7 +3,6 @@ package br.com.api.petpoints.modules.users.cliente.features.dashboard.controller
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.cliente.features.dashboard.dto.AtendimentosPendentesDto;
 import br.com.api.petpoints.modules.users.cliente.features.dashboard.dto.ConsultaDashboardDto;
-import br.com.api.petpoints.modules.users.cliente.features.dashboard.dto.PagamentosPendentesDto;
 import br.com.api.petpoints.modules.users.cliente.features.dashboard.service.ClienteDashboardServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -37,11 +36,5 @@ public class ClienteDashboardController {
     public ResponseEntity<List<ConsultaDashboardDto>> buscarConsultasPendentes(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok().body(this.clienteDashboardService.listarConsultasPendentes(token.getIdUsuario()));
-    }
-
-    @GetMapping("/pagamentos-pendentes")
-    public ResponseEntity<List<PagamentosPendentesDto>> buscarPagamentosPendentes(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.clienteDashboardService.listarPagamentosPendentes(token.getIdUsuario()));
     }
 }

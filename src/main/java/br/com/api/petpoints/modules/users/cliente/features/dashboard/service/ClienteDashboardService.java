@@ -10,5 +10,4 @@ public interface ClienteDashboardService {
     List<ConsultaDashboardDto> listarConsultasPendentes(Long idUsuario);
     List<ConsultaDashboardDto> listarConsultasIniciadasAprovadas(Long idUsuario);
     List<AtendimentosPendentesDto> listarAtendimentosPendentes(Long idUsuario);
-    List<PagamentosPendentesDto> listarPagamentosPendentes(Long idUsuario);
 }
