@@ -25,4 +25,8 @@ public class ComprovanteModel {
     private LocalDateTime enviadoEm;
 
     private UUID arquivo;
+
+    public ComprovanteModel(UUID arquivo) {
+        this.arquivo = arquivo;
+    }
 }

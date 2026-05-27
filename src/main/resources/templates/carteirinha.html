@@ -1,134 +1,187 @@
-<!DOCTYPE html>
-<html lang="pt-br"
-      xmlns:th="http://www.thymeleaf.org">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-br">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"/>
 
     <style>
         * {
-            padding: 0;
             margin: 0;
-            box-sizing: border-box;
-            font-family: sans-serif;
+            padding: 0;
+            font-family: Arial, sans-serif;
         }
 
-        div.carteirinha {
-            display: flex;
-            text-orientation: sideways;
-            border: 1px solid #ccc;
-            width: 400px;
-            height: 512px;
-            margin: 1em;
+        body {
+            background: #ffffff;
+            padding: 20px;
         }
 
-        div.lateral {
+        .carteirinha {
+            width: 420px;
+            height: 520px;
+            border: 1px solid #ddd;
+        }
+
+        .lateral {
+            width: 40px;
             background-color: #0C6369;
-            writing-mode: vertical-rl;
-            text-orientation: upright;
             color: #fff;
-            font-weight: bolder;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 0.5em;
-            letter-spacing: 0.10rem;
             text-align: center;
-        }
-
-        div.pet-info {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            grid-gap: 1em;
-            padding: 0.5em;
-        }
-
-        div.pet-foto {
-            border: 1px dashed #0C6369;
-            width: 100%;
-            height: 40%;
-            padding: 0.5em;
-        }
-
-        div.imagem {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        img {
-            width: 100%;
-            height: auto;
-            object-fit: unset;
-            display: block;
-        }
-
-        div.infos {
-            border: 1px dashed #0C6369;
-            width: 100%;
-            padding: 1em;
-            position: relative;
-            display: flex;
-            flex-wrap: wrap;
-            grid-gap: 1em;
-        }
-
-        span.overflow {
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform: translateY(-0.5em) translateX(1em);
-            font-size: 12px;
-            letter-spacing: 0.10rem;
+            vertical-align: middle;
             font-weight: bold;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+
+        .titulo-rotacionado {
+            writing-mode: vertical-rl;
+        }
+
+        .pet-info {
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .pet-foto {
+            text-align: center;
+            padding: 10px;
+            background: #e9eef0;
+        }
+
+        .pet-foto img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .infos {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            background: #fff;
+        }
+
+        .section-title {
+            background: #ffffff;
             color: #0C6369;
-            background-color: #fff;
-            padding: 0 0.5em;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 4px;
+            border-bottom: 1px solid #ddd;
         }
 
-        div.data {
-            min-width: 45%;
-            gap: 5px;
-            display: flex;
+        .data {
+            width: 100%;
+            border-bottom: 1px dashed #eee;
         }
 
+        .data td {
+            padding: 4px 6px;
+            font-size: 13px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #333;
+            width: 40%;
+        }
+
+        .value {
+            color: #666;
+        }
     </style>
+
 </head>
+
 <body>
 
-<div class="carteirinha">
-    <div class="lateral">PET POINTS</div>
-    <div class="pet-info">
-        <div class="pet-foto">
-            <div class="imagem">
-                <!--<img th:if="${pet.fotoUuid != null}"
-                     th:src="@{http://localhost:8080/arquivos/{id}(id=${pet.fotoUuid})}"
-                     alt="Foto do pet"
-                     style="width: 100px; height: 100px; object-fit: cover;"/>-->
+<table class="carteirinha" cellspacing="0" cellpadding="0">
 
-                <span th:if="${pet.fotoUuid == null}">
-        Sem imagem
-    </span>
+    <tr>
+        <!-- LATERAL -->
+        <td class="lateral">
+            <span class="titulo-rotacionado">
+                PET POINTS
+            </span>
+        </td>
+
+        <!-- CONTEÚDO -->
+        <td class="pet-info">
+
+            <!-- FOTO -->
+            <div class="pet-foto">
+                <img th:if="${imagemBase64 != null}"
+                     th:src="'data:image/jpeg;base64,' + ${imagemBase64}"
+                     alt="Foto do pet"/>
+                <span th:if="${imagemBase64 == null}">Sem imagem</span>
             </div>
 
-        </div>
-        <div class="infos">
-            <span class="overflow">PET</span>
-            <div class="data"><strong>Nome </strong> <span th:text="${pet.nome}"></span></div>
-            <div class="data"><strong>Gênero </strong> <span th:text="${pet.genero}"></span></div>
-            <div class="data"><strong>Tipo </strong> <span th:text="${pet.tipoAnimal}"></span></div>
-            <div class="data"><strong>Raça </strong> <span th:text="${pet.raca}"></span></div>
-        </div>
-        <div class="infos">
-            <span class="overflow">TUTOR</span>
-            <div class="data"><strong>Nome </strong> <span th:text="${pet.nomeTutor}"></span></div>
-            <div class="data"><strong>Gênero </strong> <span th:text="${pet.generoTutor}"></span></div>
-            <div class="data"><strong>Telefone </strong> <span th:text="${pet.telefoneTutor}"></span></div>
-            <div class="data"><strong>Emial </strong> <span th:text="${pet.emailTutor}"></span></div>
-            <div class="data"><strong>CPF </strong> <span th:text="${pet.cpfTutor}"></span></div>
-        </div>
-    </div>
+            <!-- PET -->
+            <table class="infos" width="100%" cellspacing="0" cellpadding="0">
 
-</div>
+                <tr>
+                    <td class="section-title" colspan="2">PET</td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Nome</td>
+                    <td class="value" th:text="${pet.nome}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Gênero</td>
+                    <td class="value" th:text="${pet.genero}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Tipo</td>
+                    <td class="value" th:text="${pet.tipo}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Raça</td>
+                    <td class="value" th:text="${pet.raca}"></td>
+                </tr>
+
+            </table>
+
+            <!-- TUTOR -->
+            <table class="infos" width="100%" cellspacing="0" cellpadding="0" style="margin-top:10px;">
+
+                <tr>
+                    <td class="section-title" colspan="2">TUTOR</td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Nome</td>
+                    <td class="value" th:text="${pet.nomeTutor}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Gênero</td>
+                    <td class="value" th:text="${pet.generoTutor}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Telefone</td>
+                    <td class="value" th:text="${pet.telefoneTutor}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">Email</td>
+                    <td class="value" th:text="${pet.emailTutor}"></td>
+                </tr>
+
+                <tr class="data">
+                    <td class="label">CPF</td>
+                    <td class="value" th:text="${pet.cpfTutor}"></td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+
+</table>
+
 </body>
 </html>

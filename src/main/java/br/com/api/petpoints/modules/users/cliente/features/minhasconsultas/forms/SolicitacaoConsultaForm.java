@@ -1,6 +1,6 @@
 package br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms;
 
-import jakarta.validation.constraints.NotEmpty;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
@@ -17,4 +17,5 @@ public class SolicitacaoConsultaForm {
     private Long idTipoConsulta;
     private LocalDateTime dataConsulta;
     private String observacoes;
+    private TipoPagamentoEnum formaPagamento;
 }

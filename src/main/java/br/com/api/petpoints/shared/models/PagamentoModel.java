@@ -41,7 +41,7 @@ public class PagamentoModel {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_pagamento")
-    private StatusPagamentoEnum statusPagamento;
+    private StatusPagamentoEnum statusPagamento = StatusPagamentoEnum.PENDENTE;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_pagamento")

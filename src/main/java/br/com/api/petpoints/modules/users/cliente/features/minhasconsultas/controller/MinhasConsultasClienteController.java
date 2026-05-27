@@ -2,14 +2,18 @@ package br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.cont
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.*;
+import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.service.MinhasConsultasClienteServiceImpl;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.Token;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -65,15 +69,52 @@ public class MinhasConsultasClienteController {
     }
 
     @PostMapping("/solicitar")
-    public ResponseEntity<MinhasConsultasDto> solicitarMinhasConsulta(HttpServletRequest request, @RequestBody @Valid SolicitacaoConsultaForm form) {
+    public ResponseEntity<Void> solicitarMinhasConsulta(HttpServletRequest request, @RequestBody @Valid SolicitacaoConsultaForm form) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok(this.minhasConsultasClienteServiceImpl.solicitarNovaConsulta(token.getIdUsuario(), form));
+        this.minhasConsultasClienteServiceImpl.solicitarNovaConsulta(token.getIdUsuario(), form);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/pagamento/{idConsulta}")
+    public ResponseEntity<PagamentoDto> buscarPagamentoPorConsulta(@PathVariable Long idConsulta) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarPagamentoConsulta(idConsulta));
     }
 
     @PutMapping("/cancelar-consulta")
     public ResponseEntity<?> cancelarConsulta(HttpServletRequest request, @RequestBody @Valid CancelarConsultaForm form) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         this.minhasConsultasClienteServiceImpl.cancelarConsulta(token.getIdUsuario(), form);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{idConsulta}")
+    public ResponseEntity<MinhasConsultasDto> buscarConsultaPorId(@PathVariable Long idConsulta) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarConsultaPorId(idConsulta));
+    }
+
+    @PostMapping("/registrar-comprovante/{idConsulta}")
+    public ResponseEntity<Void> registrarComprovanteConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestParam MultipartFile arquivo) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        this.minhasConsultasClienteServiceImpl.registrarComprovante(idConsulta, token.getIdUsuario(), arquivo);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/alterar-forma-pagamento/{idConsulta}/{formaPagamento}")
+    public ResponseEntity<Void> alterarFormaPagamento(@PathVariable Long idConsulta, @PathVariable TipoPagamentoEnum formaPagamento) {
+        this.minhasConsultasClienteServiceImpl.alterarFormaPagamentoConsulta(idConsulta, formaPagamento);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/avaliacao-consulta/{idConsulta}")
+    public ResponseEntity<AvaliacaoConsultaDto> buscarAvaliacaoPorConsulta(HttpServletRequest request, @PathVariable Long idConsulta) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarAvaliacaoPorConsulta(token.getIdUsuario(), idConsulta));
+    }
+
+    @PostMapping("/avaliar-consulta/{idConsulta}")
+    public ResponseEntity<Void> enviarAvaliacaoConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody AvaliacaoConsultaForm form) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        this.minhasConsultasClienteServiceImpl.avaliarConsulta(token.getIdUsuario(), idConsulta, form);
         return ResponseEntity.ok().build();
     }
 }

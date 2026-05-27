@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -21,6 +22,8 @@ public class MeuPetConsultaDto {
     private String tipoConsulta;
     private String solicitadoEm;
     private String dataConsulta;
+    private UUID imagem;
+    private Long idPet;
 
     public MeuPetConsultaDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -29,6 +32,8 @@ public class MeuPetConsultaDto {
         this.tipoConsulta = consulta.getTipoConsulta().getNome();
         this.solicitadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getSolicitadoEm());
         this.dataConsulta = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getDataConsulta());
+        this.imagem = consulta.getPet().getImagem();
+        this.idPet = consulta.getPet().getId();
     }
 
     public static List<MeuPetConsultaDto> convert(List<ConsultaModel> consultas) {

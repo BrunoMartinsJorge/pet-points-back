@@ -1,12 +1,12 @@
 package br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.service;
 
+import br.com.api.petpoints.core.initializer.UsuariosPadroes;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.dto.*;
+import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
-import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
-import br.com.api.petpoints.shared.enums.TipoLogEnum;
+import br.com.api.petpoints.shared.enums.*;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.exception.custom.PerfilDesativadoException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
@@ -15,14 +15,13 @@ import br.com.api.petpoints.shared.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,8 +33,11 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final PetRepository petRepository;
     private final TipoConsultaRepository tipoConsultaRepository;
     private final LogsServiceImpl logsService;
-    private final AvaliacaoRepository avaliacaoRepository;
+    private final PagamentoRepository pagamentoRepository;
     private final EspecializacaoRepository especializacaoRepository;
+    private final ArquivoRepository arquivoRepository;
+    private final ComprovanteRepository comprovanteRepository;
+    private final AvaliacaoRepository avaliacaoRepository;
 
     @Override
     public List<MinhasConsultasDto> listarConsultasAprovadas(Long idUsuario) {
@@ -81,7 +83,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     @Transactional
-    public MinhasConsultasDto solicitarNovaConsulta(Long idUsuario, SolicitacaoConsultaForm form) {
+    public void solicitarNovaConsulta(Long idUsuario, SolicitacaoConsultaForm form) {
         this.validarSolicitacaoDeConsulta(idUsuario, form);
         PetModel pet = this.getPetPorId(form.getIdPet());
         UsuarioModel solicitante = this.getUsuarioPorId(idUsuario);
@@ -95,8 +97,17 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         consulta.setVeterinario(veterinario);
         consulta.setTipoConsulta(tipoConsulta);
         consulta.setPet(pet);
-        consulta = this.consultaRepository.save(consulta);
-        return new MinhasConsultasDto(consulta);
+        consulta.setPagamento(this.gerarFormaPagamento(tipoConsulta, form.getDataConsulta(), form.getFormaPagamento()));
+        this.consultaRepository.save(consulta);
+    }
+
+    @Transactional
+    protected PagamentoModel gerarFormaPagamento(TipoConsultaModel tipo, LocalDateTime dataConsulta, TipoPagamentoEnum tipoPagamento) {
+        PagamentoModel pagamento = new PagamentoModel();
+        pagamento.setDataLimitePagamento(dataConsulta);
+        pagamento.setTipoPagamento(tipoPagamento);
+        pagamento.setValorPagamento(tipo.getValor());
+        return this.pagamentoRepository.save(pagamento);
     }
 
     @Override
@@ -138,7 +149,11 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     public List<DiaConsultasVeterinarioDto> buscarDiasHorariosDisponiveisVeterinario(Long idVeterinario) {
-        Map<LocalDateTime, List<ConsultaModel>> consultas = this.consultaRepository.findAllByVeterinario_Id(idVeterinario).stream().filter(consulta -> consulta.getDataConsulta().toLocalDate().isEqual(LocalDate.now()) || consulta.getDataConsulta().toLocalDate().isBefore(LocalDate.now())).collect(Collectors.groupingBy(ConsultaModel::getDataConsulta));
+        Map<LocalDateTime, List<ConsultaModel>> consultas =
+                this.consultaRepository.findAllByVeterinario_Id(idVeterinario)
+                        .stream()
+                        .filter(this::consultaValida)
+                        .collect(Collectors.groupingBy(ConsultaModel::getDataConsulta));
         return consultas.entrySet().stream().map(value -> {
             LocalDate data = value.getKey().toLocalDate();
             List<LocalTime> horarios = value.getValue().stream().map(datas -> datas.getDataConsulta().toLocalTime()).toList();
@@ -146,10 +161,141 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         }).toList();
     }
 
+    private boolean consultaValida(ConsultaModel consulta) {
+        LocalDate dataConsulta = consulta.getDataConsulta().toLocalDate();
+        StatusConsultaEnum status = consulta.getStatus();
+
+        boolean dataValida =
+                !dataConsulta.isAfter(LocalDate.now());
+
+        boolean statusValido =
+                status != StatusConsultaEnum.REPROVADA &&
+                        status != StatusConsultaEnum.FINALIZADO &&
+                        status != StatusConsultaEnum.CANCELADO;
+
+        return dataValida || statusValido;
+    }
+
     @Override
     public List<OpcoesPetConsultasDto> buscarPetsConsulta(Long idUsuario) {
         List<PetModel> pets = this.petRepository.findAllByTutor_Id(idUsuario);
         return OpcoesPetConsultasDto.convert(pets);
+    }
+
+    @Override
+    public PagamentoDto buscarPagamentoConsulta(Long idConsulta) {
+        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        PagamentoModel pagamento = consulta.getPagamento();
+        pagamento.setDataLimitePagamento(consulta.getDataConsulta().plusWeeks(2));
+        pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
+        pagamento.setValorPagamento(consulta.getTipoConsulta().getValor());
+        this.pagamentoRepository.save(pagamento);
+        byte[] comprovante = new byte[0];
+        String tipoArquivo = "";
+        if (pagamento.getComprovante() != null) {
+            comprovante = this.arquivoRepository.findById(pagamento.getComprovante().getArquivo()).get().getConteudo();
+            tipoArquivo = this.arquivoRepository.findById(pagamento.getComprovante().getArquivo()).get().getTipo();
+        }
+        return new PagamentoDto(consulta.getPagamento(), comprovante, tipoArquivo);
+    }
+
+    @Override
+    @Transactional
+    public void registrarComprovante(Long idConsulta, Long idUsuario, MultipartFile file) {
+        PagamentoModel pagamento = this.getConsultaPorId(idConsulta)
+                .getPagamento();
+        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
+        ComprovanteModel comprovante = pagamento.getComprovante();
+        UUID novoArquivo = this.salvarArquivo(file);
+        if (comprovante == null) {
+            comprovante = new ComprovanteModel(novoArquivo);
+        } else {
+            UUID arquivoAntigo = comprovante.getArquivo();
+            comprovante.setArquivo(novoArquivo);
+            if (arquivoAntigo != null) {
+                this.arquivoRepository.deleteById(arquivoAntigo);
+            }
+        }
+        pagamento.setEmitidoPor(usuario);
+        comprovante = this.comprovanteRepository.save(comprovante);
+        pagamento.setComprovante(comprovante);
+        pagamento.setStatusPagamento(StatusPagamentoEnum.ENVIADO);
+        this.pagamentoRepository.save(pagamento);
+    }
+
+    @Override
+    @Transactional
+    public void alterarFormaPagamentoConsulta(Long idConsulta, TipoPagamentoEnum formaPagamento) {
+        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        if (consulta.getStatus() == StatusConsultaEnum.CANCELADO || consulta.getStatus() == StatusConsultaEnum.REPROVADA)
+            throw new RuntimeException("A consulta não pode ser alterada devido seu estado atual!");
+        if (consulta.getPagamento().getStatusPagamento() == StatusPagamentoEnum.APROVADO)
+            throw new RuntimeException("O pagamento já foi aprovado, a forma de pagamento não pode ser alterada!");
+        consulta.getPagamento().setTipoPagamento(formaPagamento);
+        ComprovanteModel comprovante = consulta.getPagamento().getComprovante();
+        if (comprovante != null) {
+            UUID arquivo = comprovante.getArquivo();
+            if (arquivo != null)
+                this.arquivoRepository.deleteById(arquivo);
+            this.comprovanteRepository.delete(comprovante);
+        }
+        consulta.getPagamento().setComprovante(null);
+        consulta.getPagamento().setStatusPagamento(StatusPagamentoEnum.PENDENTE);
+        this.consultaRepository.save(consulta);
+    }
+
+    @Override
+    public AvaliacaoConsultaDto buscarAvaliacaoPorConsulta(Long idUsuario, Long idConsulta) {
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
+        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        this.consultaPertenceCliente(consulta, cliente);
+        AvaliacaoModel avaliacao = consulta.getAvaliacao();
+        if (avaliacao == null) return new AvaliacaoConsultaDto();
+        return new AvaliacaoConsultaDto(avaliacao);
+    }
+
+    @Override
+    @Transactional
+    public void avaliarConsulta(Long idUsuario, Long idConsulta, AvaliacaoConsultaForm form) {
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
+        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        this.consultaPertenceCliente(consulta, cliente);
+        if (consulta.getAvaliacao() != null) throw new RuntimeException("Consulta já avaliada!");
+        if (consulta.getStatus() != StatusConsultaEnum.FINALIZADO)
+            throw new RuntimeException("A consulta só pode ser avaliada caso já esteja finalizada!");
+        AvaliacaoModel avaliacao = this.avaliacaoRepository.save(new AvaliacaoModel(form, cliente));
+        consulta.setAvaliacao(avaliacao);
+        this.consultaRepository.save(consulta);
+    }
+
+    @Override
+    public MinhasConsultasDto buscarConsultaPorId(Long idConsulta) {
+        return new MinhasConsultasDto(this.getConsultaPorId(idConsulta));
+    }
+
+    private void consultaPertenceCliente(ConsultaModel consulta, UsuarioModel cliente) {
+        if (!consulta.getSolicitante().equals(cliente))
+            throw new RuntimeException("Você não pode acessar essa consulta!");
+    }
+
+    private UUID salvarArquivo(MultipartFile form) {
+        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
+        List<String> tiposPermitidos = List.of(
+                "image/png",
+                "image/jpeg",
+                "application/pdf"
+        );
+        if (!tiposPermitidos.contains(form.getContentType()))
+            throw new RuntimeException("Tipo inválido");
+        ArquivosModel arquivo = new ArquivosModel();
+        try {
+            arquivo.setConteudo(form.getBytes());
+            arquivo.setNome(form.getOriginalFilename());
+            arquivo.setTipo(form.getContentType());
+            return this.arquivoRepository.save(arquivo).getId();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void validarSolicitacaoDeConsulta(Long idUsuario, SolicitacaoConsultaForm form) {

@@ -1,5 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
+import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -28,7 +29,7 @@ public class AvaliacaoModel {
     @Max(5)
     @NotNull(message = "O campo 'pontuacao' não pode ser nulo!")
     @NotBlank(message = "O campo 'pontuacao' não pode estar em branco!")
-    private double pontuacao;
+    private int pontuacao;
 
     @ManyToOne
     @JoinColumn(name = "avaliado_por")
@@ -40,4 +41,10 @@ public class AvaliacaoModel {
     @CreationTimestamp
     @Column(name = "avaliado_em")
     private LocalDateTime avaliadoEm;
+
+    public AvaliacaoModel(AvaliacaoConsultaForm form, UsuarioModel cliente) {
+        this.pontuacao = form.getPontuacao();
+        this.avaliadoPor = cliente;
+        this.observacoes = form.getObservacoes();
+    }
 }

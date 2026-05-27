@@ -1,15 +1,13 @@
 package br.com.api.petpoints.core.initializer;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
-import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
-import br.com.api.petpoints.shared.models.EspecializacaoModel;
-import br.com.api.petpoints.shared.models.TipoConsultaModel;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
+import br.com.api.petpoints.shared.models.ConsultaModel;
+import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.EspecializacaoRepository;
-import br.com.api.petpoints.shared.repository.TipoConsultaRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.CommandLineRunner;
@@ -18,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 
 @Configuration
 @RequiredArgsConstructor
@@ -27,7 +24,9 @@ public class UsuariosPadroes implements CommandLineRunner {
     private final EspecializacaoRepository especializacaoRepository;
     private final TipoConsultaRepository tipoConsultaRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final PagamentoRepository pagamentoRepository;
+    private final ConsultaRepository consultaRepository;
+    @Transactional
     @Override
     @NullMarked
     public void run(String... args) throws Exception {
@@ -82,10 +81,20 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.E);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
-        UsuarioModel vet = this.usuarioRepository.findById(12L).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + 12 + " não encontrado!"));
+        // this.pagamentos();
     }
 
-    private void limpar() {
-        this.usuarioRepository.deleteAll(this.usuarioRepository.findAllByPermissao(TipoUsuario.A));
+    private void pagamentos() {
+        List<ConsultaModel> consultas = this.consultaRepository.findAllByPagamentoIsNull();
+        for (ConsultaModel consulta : consultas) {
+            PagamentoModel pagamento = new PagamentoModel();
+            pagamento.setTipoPagamento(TipoPagamentoEnum.PIX);
+            pagamento.setDataLimitePagamento(consulta.getDataConsulta().plusWeeks(2));
+            pagamento.setValorPagamento(consulta.getTipoConsulta() != null ? consulta.getTipoConsulta().getValor() : 0);
+            pagamento.setEmitidoPor(consulta.getSolicitante());
+            pagamento = this.pagamentoRepository.save(pagamento);
+            consulta.setPagamento(pagamento);
+            this.consultaRepository.save(consulta);
+        }
     }
 }

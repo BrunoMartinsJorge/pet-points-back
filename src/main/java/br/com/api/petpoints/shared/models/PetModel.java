@@ -2,6 +2,7 @@ package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.modules.users.cliente.features.meuspets.forms.NovoPetForm;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.enums.TipoAnimalEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -50,6 +51,8 @@ public class PetModel {
 
     private UUID imagem;
 
+    private StatusPerfilEnum status = StatusPerfilEnum.A;
+
     public PetModel(NovoPetForm form, UsuarioModel tutor){
         this.nome = form.getNome();
         this.genero = form.getGenero();
@@ -58,7 +61,6 @@ public class PetModel {
         this.tipo = form.getTipo();
         this.raca = form.getRaca();
         this.observacoes = form.getObservacoes();
-        this.imagem = form.getImagem();
         this.tutor = tutor;
     }
 }
