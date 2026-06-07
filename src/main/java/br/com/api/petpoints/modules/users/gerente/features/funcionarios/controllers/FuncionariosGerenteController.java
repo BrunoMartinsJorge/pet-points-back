@@ -1,14 +1,18 @@
 package br.com.api.petpoints.modules.users.gerente.features.funcionarios.controllers;
 
+import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.AvaliacoesDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.ConsultaFuncionarioDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.FuncionarioDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.MovimentacoesEstoquistasDto;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.EditarFuncionarioForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FiltroFuncionariosForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FuncionarioForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.services.FuncionariosGerenteServiceImpl;
 import br.com.api.petpoints.shared.dto.OpcoesDto;
+import br.com.api.petpoints.shared.enums.GeneroEnum;
+import br.com.api.petpoints.shared.enums.TipoAnimalEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +20,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -44,8 +50,15 @@ public class FuncionariosGerenteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FuncionarioDto> atualizarDadosDeFuncionarioPorId(@PathVariable Long id, @RequestBody @Valid FuncionarioForm form) {
-        return ResponseEntity.ok().body(this.funcionariosGerenteService.atualizarFuncionario(form, id));
+    public ResponseEntity<FuncionarioDto> editarFuncionario(@PathVariable Long id, @RequestParam String nome,
+                                                            @RequestParam GeneroEnum genero,
+                                                            @RequestParam String email,
+                                                            @RequestParam String telefone,
+                                                            @RequestParam TipoUsuario permissao,
+                                                            @RequestParam LocalDate dataNascimento,
+                                                            @RequestParam(required = false) MultipartFile foto) {
+        EditarFuncionarioForm form = new EditarFuncionarioForm(nome, genero, email, telefone, permissao, dataNascimento);
+        return ResponseEntity.ok().body(this.funcionariosGerenteService.atualizarFuncionario(form, id, foto));
     }
 
     @DeleteMapping("/{id}")

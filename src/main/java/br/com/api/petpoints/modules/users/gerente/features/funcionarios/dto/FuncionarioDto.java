@@ -9,6 +9,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.util.UUID;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -21,10 +24,11 @@ public class FuncionarioDto {
     private String cpf;
     private String telefone;
     private GeneroEnum genero;
-    private String dataNascimento;
+    private LocalDate dataNascimento;
     private String dataCadastro;
     private String permissao;
     private String statusPerfil;
+    private UUID arquivo;
 
     public FuncionarioDto(UsuarioModel usuario) {
         this.id = usuario.getId();
@@ -33,9 +37,10 @@ public class FuncionarioDto {
         this.cpf = usuario.getCpf();
         this.telefone = usuario.getTelefone();
         this.genero = usuario.getGenero();
-        this.dataNascimento = LocalDateUtils.converterLocalDateParaPtBr(usuario.getDataNascimento());
+        this.dataNascimento = usuario.getDataNascimento();
         this.dataCadastro = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(usuario.getDataCadastro());
         this.permissao = usuario.getPermissao().getDescricao();
         this.statusPerfil = usuario.getStatusPerfilEnum().getDescricao();
+        this.arquivo = usuario.getImagem();
     }
 }

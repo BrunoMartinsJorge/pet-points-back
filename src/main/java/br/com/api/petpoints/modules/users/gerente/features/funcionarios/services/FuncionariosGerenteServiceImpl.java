@@ -5,6 +5,7 @@ import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.Aval
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.ConsultaFuncionarioDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.FuncionarioDto;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.dto.MovimentacoesEstoquistasDto;
+import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.EditarFuncionarioForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FiltroFuncionariosForm;
 import br.com.api.petpoints.modules.users.gerente.features.funcionarios.forms.FuncionarioForm;
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
@@ -24,11 +25,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.io.IOException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +43,7 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
     private final RelatoriosUtils relatoriosUtils;
     private final EspecializacaoRepository especializacaoRepository;
     private final MovimentacaoRepository movimentacaoRepository;
+    private final ArquivoRepository arquivoRepository;
 
     private UsuarioModel getUsuarioPorId(Long idFuncionario) {
         return this.usuarioRepository.findById(idFuncionario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idFuncionario + " não encontrado!"));
@@ -81,8 +82,8 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
 
     @Override
     @Transactional
-    public FuncionarioDto atualizarFuncionario(FuncionarioForm form, Long idFuncionario) {
-        UsuarioModel usuario = this.alterarDados((this.getUsuarioPorId(idFuncionario)), form);
+    public FuncionarioDto atualizarFuncionario(EditarFuncionarioForm form, Long idFuncionario, MultipartFile file) {
+        UsuarioModel usuario = this.alterarDados((this.getUsuarioPorId(idFuncionario)), form, file);
         this.usuarioRepository.save(usuario);
         return new FuncionarioDto(usuario);
     }
@@ -179,15 +180,41 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
         if (!consultasPendentes.isEmpty()) throw new RuntimeException("O veterinário possui consultas pendentes!");
     }
 
-    private UsuarioModel alterarDados(UsuarioModel usuario, FuncionarioForm form) {
+    private UsuarioModel alterarDados(UsuarioModel usuario, EditarFuncionarioForm form, MultipartFile file) {
         usuario.setNome(!Objects.equals(usuario.getNome(), form.getNome()) ? form.getNome() : usuario.getNome());
-        usuario.setSenha(!Objects.equals(usuario.getSenha(), passwordEncoder.encode(form.getSenha())) ? this.passwordEncoder.encode(form.getSenha()) : usuario.getSenha());
         usuario.setEmail(!Objects.equals(usuario.getEmail(), form.getEmail()) ? form.getEmail() : usuario.getEmail());
         usuario.setTelefone(!Objects.equals(usuario.getTelefone(), form.getTelefone()) ? form.getTelefone() : usuario.getTelefone());
         usuario.setPermissao(usuario.getPermissao() != form.getPermissao() ? form.getPermissao() : usuario.getPermissao());
         usuario.setGenero(usuario.getGenero() != form.getGenero() ? form.getGenero() : usuario.getGenero());
         usuario.setDataNascimento(usuario.getDataNascimento() != form.getDataNascimento() ? form.getDataNascimento() : usuario.getDataNascimento());
-        usuario.setCpf(!Objects.equals(usuario.getCpf(), form.getCpf()) ? form.getCpf() : usuario.getCpf());
+        if (file != null && !file.isEmpty()) {
+            UUID imagemAntiga = usuario.getImagem();
+            UUID novaImagem = this.salvarArquivo(file);
+            usuario.setImagem(novaImagem);
+            if (imagemAntiga != null) {
+                this.arquivoRepository.deleteById(imagemAntiga);
+            }
+        }
         return usuario;
+    }
+
+    private UUID salvarArquivo(MultipartFile form) {
+        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
+        List<String> tiposPermitidos = List.of(
+                "image/png",
+                "image/jpeg",
+                "application/pdf"
+        );
+        if (!tiposPermitidos.contains(form.getContentType()))
+            throw new RuntimeException("Tipo inválido");
+        ArquivosModel arquivo = new ArquivosModel();
+        try {
+            arquivo.setConteudo(form.getBytes());
+            arquivo.setNome(form.getOriginalFilename());
+            arquivo.setTipo(form.getContentType());
+            return this.arquivoRepository.save(arquivo).getId();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
