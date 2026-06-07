@@ -21,9 +21,9 @@ public class ClienteDashboardServiceImpl implements ClienteDashboardService {
     private final AtendimentoRepository atendimentoRepository;
 
     @Override
-    public List<ConsultaDashboardDto> listarConsultasPendentes(Long idUsuario) {
+    public List<PagamentosPendentesDto> listarPagamentosPendentes(Long idUsuario) {
         List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.PENDENTE);
-        return ConsultaDashboardDto.convert(consultas);
+        return PagamentosPendentesDto.convert(consultas);
     }
 
     @Override

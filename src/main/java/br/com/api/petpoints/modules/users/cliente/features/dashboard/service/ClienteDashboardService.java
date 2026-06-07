@@ -7,7 +7,7 @@ import br.com.api.petpoints.modules.users.cliente.features.dashboard.dto.Pagamen
 import java.util.List;
 
 public interface ClienteDashboardService {
-    List<ConsultaDashboardDto> listarConsultasPendentes(Long idUsuario);
+    List<PagamentosPendentesDto> listarPagamentosPendentes(Long idUsuario);
     List<ConsultaDashboardDto> listarConsultasIniciadasAprovadas(Long idUsuario);
     List<AtendimentosPendentesDto> listarAtendimentosPendentes(Long idUsuario);
 }
