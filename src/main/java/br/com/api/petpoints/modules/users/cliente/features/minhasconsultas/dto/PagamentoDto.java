@@ -36,7 +36,7 @@ public class PagamentoDto {
         this.status = pagamento.getStatusPagamento();
         this.motivoIndeferimento = pagamento.getMotivoIndeferimento();
         this.dataPagamento = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataPagamento());
-        this.atrasado = LocalDateTime.now().isAfter(pagamento.getDataLimitePagamento());
+        this.atrasado = LocalDateTime.now().isAfter(pagamento.getDataLimitePagamento()) && pagamento.getStatusPagamento().equals(StatusPagamentoEnum.PENDENTE);
         this.comprovante = comprovante;
         this.tipoArquivo = tipoArquivo;
     }

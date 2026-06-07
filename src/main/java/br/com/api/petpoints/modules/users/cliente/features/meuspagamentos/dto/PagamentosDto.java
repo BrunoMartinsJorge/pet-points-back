@@ -1,6 +1,7 @@
 package br.com.api.petpoints.modules.users.cliente.features.meuspagamentos.dto;
 
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import lombok.AllArgsConstructor;
@@ -15,23 +16,27 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PagamentosPendentesDto {
+public class PagamentosDto {
 
     private Long id;
+    private Long idConsulta;
     private double valor;
     private String dataLimitePagamento;
+    private StatusPagamentoEnum statusPagamento;
+    private TipoPagamentoEnum tipoPagamento;
     private boolean atrasado;
-    private StatusPagamentoEnum status;
 
-    public PagamentosPendentesDto(ConsultaModel consulta) {
+    public PagamentosDto(ConsultaModel consulta) {
         this.id = consulta.getPagamento().getId();
+        this.idConsulta = consulta.getId();
         this.valor = consulta.getPagamento().getValorPagamento();
         this.dataLimitePagamento = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getPagamento().getDataPagamento());
+        this.statusPagamento = consulta.getPagamento().getStatusPagamento();
+        this.tipoPagamento = consulta.getPagamento().getTipoPagamento();
         this.atrasado = consulta.getPagamento().getDataPagamento().isAfter(LocalDateTime.now());
-        this.status = consulta.getPagamento().getStatusPagamento();
     }
 
-    public static List<PagamentosPendentesDto> convert(List<ConsultaModel> consultas) {
-        return consultas.stream().map(PagamentosPendentesDto::new).toList();
+    public static List<PagamentosDto> convert(List<ConsultaModel> consultas) {
+        return consultas.stream().map(PagamentosDto::new).toList();
     }
 }

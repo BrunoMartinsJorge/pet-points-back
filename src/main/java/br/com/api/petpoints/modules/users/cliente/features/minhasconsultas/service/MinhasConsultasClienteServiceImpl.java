@@ -50,7 +50,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         if (usuario.isEmpty()) throw new UsuarioNaoEncontrado("Usuário com ID " + idUsuario + " não encontrado!");
         if (usuario.get().getStatusPerfilEnum().equals(StatusPerfilEnum.D))
             throw new PerfilDesativadoException("Perfil com email " + usuario.get().getEmail() + " desabilitado!");
-        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta -> !consulta.getStatus().equals(StatusConsultaEnum.PENDENTE)).toList();
+        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
         return minhasConsultas.stream().map(MinhasConsultasDto::new).toList();
     }
 
@@ -186,10 +186,6 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     public PagamentoDto buscarPagamentoConsulta(Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         PagamentoModel pagamento = consulta.getPagamento();
-        pagamento.setDataLimitePagamento(consulta.getDataConsulta().plusWeeks(2));
-        pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
-        pagamento.setValorPagamento(consulta.getTipoConsulta().getValor());
-        this.pagamentoRepository.save(pagamento);
         byte[] comprovante = new byte[0];
         String tipoArquivo = "";
         if (pagamento.getComprovante() != null) {
