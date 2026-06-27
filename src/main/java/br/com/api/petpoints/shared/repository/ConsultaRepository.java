@@ -2,14 +2,15 @@ package br.com.api.petpoints.shared.repository;
 
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
+import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.models.AtendimentoModel;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
@@ -23,12 +24,14 @@ public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
     List<ConsultaModel> findAllByPet_Id(Long id);
     List<ConsultaModel> findAllByPet_IdOrderByDataConsultaDesc(Long id);
     List<ConsultaModel> findAllByPagamentoIsNull();
+    Optional<ConsultaModel> findByPagamento_Id(Long idPagamento);
+    List<ConsultaModel> findAllByPagamento_StatusPagamentoAndSolicitante_Id(StatusPagamentoEnum statusPagamento, Long idUsuario);
     boolean existsByPet_IdAndStatus(Long id, StatusConsultaEnum status);
 
     @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and (u.status = 'APROVADA' or u.status = 'INICIADA')")
     List<ConsultaModel> buscarConsultasConfirmadasPorUsuario(Long idUsuario);
 
-    @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and u.pagamento is null and u.status = 'Finalizado'")
+    @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and (u.status = 'APROVADA' or u.status = 'INICIADO' or u.status = 'FINALIZADO') and u.pagamento.statusPagamento = 'PENDENTE'")
     List<ConsultaModel> buscarConsultasPorUsuarioComPagamentosPendentes(Long idUsuario);
 
     @Query("SELECT h FROM ConsultaModel h WHERE h.veterinario.id = ?1 AND h.status = ?2 AND h.avaliacao IS NOT NULL")

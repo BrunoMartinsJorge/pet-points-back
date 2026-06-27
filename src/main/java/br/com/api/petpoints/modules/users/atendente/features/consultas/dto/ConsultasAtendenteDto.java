@@ -1,5 +1,6 @@
 package br.com.api.petpoints.modules.users.atendente.features.consultas.dto;
 
+import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import lombok.Getter;
@@ -7,12 +8,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ConsultasDto {
+public class ConsultasAtendenteDto {
 
     private Long id;
     private String iniciadoEm;
     private String finalizadoEm;
-    private String status;
+    private StatusConsultaEnum status;
     private String solicitante;
     private String atendente;
     private String veterinario;
@@ -27,11 +28,11 @@ public class ConsultasDto {
     private String motivoCancelamento;
     private String observacoes;
 
-    public ConsultasDto(ConsultaModel consulta) {
+    public ConsultasAtendenteDto(ConsultaModel consulta) {
         this.id = consulta.getId();
         this.iniciadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getIniciadoEm());
         this.finalizadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getFinalizadoEm());
-        this.status = consulta.getStatus().getDescricao();
+        this.status = consulta.getStatus();
         this.solicitante = consulta.getSolicitante().getNome();
         this.atendente = consulta.getAtendente() != null ? consulta.getAtendente().getNome() : "Consulta Não Deferida!";
         this.veterinario = consulta.getVeterinario().getNome();
