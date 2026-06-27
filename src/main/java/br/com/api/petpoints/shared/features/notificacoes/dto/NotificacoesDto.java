@@ -1,5 +1,6 @@
 package br.com.api.petpoints.shared.features.notificacoes.dto;
 
+import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.models.NotificacaoModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,6 +20,7 @@ public class NotificacoesDto {
     private String mensagem;
     private LocalDateTime data;
     private boolean lida;
+    private TiposNotificacoesEnum tipo;
 
     public NotificacoesDto(NotificacaoModel notificacao) {
         this.id = notificacao.getId();
@@ -26,6 +28,7 @@ public class NotificacoesDto {
         this.mensagem = notificacao.getConteudo();
         this.data = notificacao.getEnviadoEm();
         this.lida = notificacao.isVisto();
+        this.tipo = notificacao.getTipo();
     }
 
     public static List<NotificacoesDto> convert(List<NotificacaoModel> notificacoes) {
