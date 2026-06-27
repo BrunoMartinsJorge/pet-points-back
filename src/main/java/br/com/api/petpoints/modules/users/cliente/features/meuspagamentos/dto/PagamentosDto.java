@@ -33,7 +33,7 @@ public class PagamentosDto {
         this.dataLimitePagamento = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getPagamento().getDataPagamento());
         this.statusPagamento = consulta.getPagamento().getStatusPagamento();
         this.tipoPagamento = consulta.getPagamento().getTipoPagamento();
-        this.atrasado = consulta.getPagamento().getDataPagamento().isAfter(LocalDateTime.now());
+        this.atrasado = consulta.getPagamento().getDataPagamento().isBefore(LocalDateTime.now());
     }
 
     public static List<PagamentosDto> convert(List<ConsultaModel> consultas) {

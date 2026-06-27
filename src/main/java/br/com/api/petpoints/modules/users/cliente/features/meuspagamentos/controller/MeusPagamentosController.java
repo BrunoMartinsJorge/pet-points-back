@@ -28,6 +28,11 @@ public class MeusPagamentosController {
         return ResponseEntity.ok().body(this.meusPagamentosService.buscarInformacoesCards(token.getIdUsuario()));
     }
 
+    @GetMapping("/{idPagamento}")
+    public ResponseEntity<PagamentosDto> buscarPagamentoPorId(@PathVariable Long idPagamento) {
+        return ResponseEntity.ok().body(this.meusPagamentosService.buscarPagamentoPorId(idPagamento));
+    }
+
     @GetMapping("/pendentes-atrasados")
     public ResponseEntity<List<PagamentosDto>> listarPagamentosPendentesAtrasadosPorCliente(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));

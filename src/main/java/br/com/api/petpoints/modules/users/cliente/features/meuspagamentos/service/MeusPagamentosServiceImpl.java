@@ -47,7 +47,7 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
     public CardsPagamentoDto buscarInformacoesCards(Long idUsuario) {
         List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
         int efetuados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && (consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.ENVIADO) || consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.APROVADO))).toList().size();
-        int atrasados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento().getDataLimitePagamento().isAfter(LocalDateTime.now())).toList().size();
+        int atrasados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento().getDataLimitePagamento().isBefore(LocalDateTime.now())).toList().size();
         int reprovados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO)).toList().size();
         return new CardsPagamentoDto(efetuados, atrasados, reprovados);
     }
@@ -125,6 +125,14 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
         pagamento.setTipoPagamento(novaForma);
         pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
         this.pagamentoRepository.save(pagamento);
+    }
+
+    @Override
+    public PagamentosDto buscarPagamentoPorId(Long idPagamento) {
+        ConsultaModel consulta = this.consultaRepository.findByPagamento_Id(idPagamento).orElseThrow(() -> new ObjectNotFoundException(
+                "Pagamento com ID: " + idPagamento + " não encontrado!"
+        ));
+        return new PagamentosDto(consulta);
     }
 
     private UUID salvarArquivo(MultipartFile form) {

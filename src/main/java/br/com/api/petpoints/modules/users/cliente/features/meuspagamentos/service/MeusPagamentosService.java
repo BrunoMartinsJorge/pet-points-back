@@ -18,4 +18,5 @@ public interface MeusPagamentosService {
     MinhasConsultasDto buscarInformacoesConsultaPagamento(Long idConsulta);
     void registrarNovoComprovante(Long idPagamento, MultipartFile comprovante);
     void alterarFormaPagamento(Long idPagamento, TipoPagamentoEnum novaForma);
+    PagamentosDto buscarPagamentoPorId(Long idPagamento);
 }
