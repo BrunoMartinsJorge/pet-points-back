@@ -1,8 +1,9 @@
-package br.com.api.petpoints.modules.users.cliente.features.perfil.service;
+package br.com.api.petpoints.shared.features.perfil.service;
 
+import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.modules.users.cliente.features.perfil.dto.InformacoesUsuarioDto;
-import br.com.api.petpoints.modules.users.cliente.features.perfil.form.EditarPerfilFotm;
+import br.com.api.petpoints.shared.features.perfil.dto.InformacoesUsuarioDto;
+import br.com.api.petpoints.shared.features.perfil.form.EditarPerfilForm;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
@@ -16,6 +17,7 @@ import br.com.api.petpoints.shared.repository.PetRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,8 +27,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
-public class ClientePerfilServiceImpl implements ClientePerfilService {
+public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
 
     private final UsuarioRepository usuarioRepository;
     private final ArquivoRepository arquivoRepository;
@@ -34,7 +37,8 @@ public class ClientePerfilServiceImpl implements ClientePerfilService {
     private final PetRepository petRepository;
 
     private UsuarioModel getUsuarioPorId(Long id) {
-        return usuarioRepository.findById(id).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + id + " não encontrado!"));
+        return usuarioRepository.findById(id).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: "
+                + id + " não encontrado!"));
     }
 
     @Override
@@ -59,7 +63,7 @@ public class ClientePerfilServiceImpl implements ClientePerfilService {
 
     @Override
     @Transactional
-    public void editarInformacoesUsuario(Long idUsuario, EditarPerfilFotm form, MultipartFile imagem) {
+    public void editarInformacoesUsuario(Long idUsuario, EditarPerfilForm form, MultipartFile imagem) {
         UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
         usuario.setNome(form.getNome());
         usuario.setEmail(form.getEmail());
@@ -84,23 +88,44 @@ public class ClientePerfilServiceImpl implements ClientePerfilService {
     @Override
     @Transactional
     public void desativarPerfil(Long idUsuario) {
-        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
+        log.info("[DESATIVAR PERFIL] - Iniciando processo de desativar perfil de usuário");
+        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
+        log.info("Usuário encontrado - " + usuario.getNome() + " - " + usuario.getCpf());
+        switch (usuario.getPermissao()) {
+            case TipoUsuario.C -> this.desativarPerfilCliente(usuario);
+            case TipoUsuario.A -> this.desativarPerfilCliente(usuario);
+            case TipoUsuario.E -> this.desativarPerfilCliente(usuario);
+            case TipoUsuario.G -> this.desativarPerfilCliente(usuario);
+            case TipoUsuario.V -> this.desativarPerfilCliente(usuario);
+        }
+        usuario.setStatusPerfilEnum(StatusPerfilEnum.D);
+        this.usuarioRepository.save(usuario);
+        log.info("[DESATIVAR PERFIL] - Operação de desativação de perfil finalizada! Perfil desabilitado!");
+    }
+
+    @Transactional
+    protected void desativarPerfilCliente(UsuarioModel cliente) {
+        log.info("[DESATIVAR PERFIL - CLIENTE] - Iniciando operações expecificas de desativar perfil de cliente");
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(cliente.getId());
+        log.info("Listando consultas do cliente. {} consultas", consultas.size());
         List<ConsultaModel> consultasFinalizadas = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.APROVADO)).toList();
+        log.info("Consultas filtradas para cancelamento. {} consultas", consultas.size());
         if (!consultasFinalizadas.isEmpty()) throw new RuntimeException("Cliente possui pagamentos pendentes!");
         consultas.forEach(consulta -> {
             if (consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO)) return;
+            log.info("Alterando status da consulta #{} para finalizado", consulta.getId());
             consulta.setStatus(StatusConsultaEnum.CANCELADO);
             consulta.setCanceladoEm(LocalDateTime.now());
             consulta.setMotivoCancelamento("Cliente desativou seu perfil!");
             this.consultaRepository.save(consulta);
         });
-        List<PetModel> pets = this.petRepository.findAllByTutor_Id(idUsuario).stream().filter(pet -> pet.getStatus().equals(StatusPerfilEnum.A)).toList();
+        List<PetModel> pets = this.petRepository.findAllByTutor_Id(cliente.getId()).stream().filter(pet -> pet.getStatus().equals(StatusPerfilEnum.A)).toList();
+        log.info("Listando pets do cliente para serem desativados. {} Pets", pets.size());
         pets.forEach(pet -> {
+            log.info("Alterando status do pet #{} - {} para DESATIVADO", pet.getId(), pet.getNome());
             pet.setStatus(StatusPerfilEnum.D);
             this.petRepository.save(pet);
         });
-        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
-        cliente.setStatusPerfilEnum(StatusPerfilEnum.D);
-        this.usuarioRepository.save(cliente);
+        log.info("[DESATIVAR PERFIL - CLIENTE] - Finalizada todas as operações expecificas de desativar perfil de cliente");
     }
 }

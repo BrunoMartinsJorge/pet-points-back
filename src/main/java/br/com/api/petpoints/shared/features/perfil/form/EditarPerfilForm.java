@@ -1,4 +1,4 @@
-package br.com.api.petpoints.modules.users.cliente.features.perfil.form;
+package br.com.api.petpoints.shared.features.perfil.form;
 
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Getter
 @AllArgsConstructor
-public class EditarPerfilFotm {
+public class EditarPerfilForm {
     private String nome;
     private LocalDate dataNascimento;
     private GeneroEnum genero;

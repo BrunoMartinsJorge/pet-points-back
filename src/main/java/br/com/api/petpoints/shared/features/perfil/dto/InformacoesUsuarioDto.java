@@ -1,4 +1,4 @@
-package br.com.api.petpoints.modules.users.cliente.features.perfil.dto;
+package br.com.api.petpoints.shared.features.perfil.dto;
 
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.models.UsuarioModel;
