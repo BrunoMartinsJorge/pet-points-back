@@ -41,6 +41,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.G);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
+        usuario = new UsuarioModel();
         usuario.setNome("Carlos Eduardo Zaul");
         usuario.setEmail("usuario@gmail.com");
         usuario.setSenha(this.passwordEncoder.encode("123456"));
@@ -51,6 +52,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.V);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
+        usuario = new UsuarioModel();
         usuario.setNome("Arthur Moura Rieger");
         usuario.setEmail("atendente@gmail.com");
         usuario.setSenha(this.passwordEncoder.encode("123456"));
@@ -61,6 +63,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.A);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
+        usuario = new UsuarioModel();
         usuario.setNome("Marizinha");
         usuario.setEmail("cliente@gmail.com");
         usuario.setSenha(this.passwordEncoder.encode("123456"));
@@ -71,6 +74,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         usuario.setPermissao(TipoUsuario.C);
         if (!this.usuarioRepository.existsByEmailOrCpf(usuario.getEmail(), usuario.getCpf()))
             this.usuarioRepository.save(usuario);
+        usuario = new UsuarioModel();
         usuario.setNome("Yann");
         usuario.setEmail("estoquista@gmail.com");
         usuario.setSenha(this.passwordEncoder.encode("123456"));
