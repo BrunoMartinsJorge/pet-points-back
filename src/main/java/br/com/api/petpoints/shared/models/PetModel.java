@@ -1,6 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
-import br.com.api.petpoints.modules.users.cliente.features.meuspets.forms.NovoPetForm;
+import br.com.api.petpoints.domain.users.cliente.features.meuspets.forms.NovoPetForm;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.enums.TipoAnimalEnum;

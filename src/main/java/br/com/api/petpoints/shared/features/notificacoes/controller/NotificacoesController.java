@@ -1,7 +1,7 @@
 package br.com.api.petpoints.shared.features.notificacoes.controller;
 
 import br.com.api.petpoints.core.token.TokenModel;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.features.notificacoes.dto.NotificacoesDto;
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.features.notificacoes.service.NotificacoesServiceImpl;

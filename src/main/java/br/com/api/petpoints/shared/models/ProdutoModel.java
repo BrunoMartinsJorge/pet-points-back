@@ -1,6 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
-import br.com.api.petpoints.modules.users.estoquista.features.estoque.form.NovoProdutoForm;
+import br.com.api.petpoints.domain.users.estoquista.features.estoque.form.NovoProdutoForm;
 import br.com.api.petpoints.shared.enums.TipoProdutoEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;

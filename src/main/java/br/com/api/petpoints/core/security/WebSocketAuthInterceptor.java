@@ -2,7 +2,7 @@ package br.com.api.petpoints.core.security;
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.core.token.TokenService;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.exception.custom.TokenExpiradaException;
 import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
 import br.com.api.petpoints.shared.models.UsuarioModel;
@@ -10,7 +10,6 @@ import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
@@ -60,11 +59,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                             .toList();
 
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            usuario,
-                            null,
-                            authorities
-                    );
+                    new UsernamePasswordAuthenticationToken(usuario, null, authorities);
 
             accessor.setUser(authentication);
         }

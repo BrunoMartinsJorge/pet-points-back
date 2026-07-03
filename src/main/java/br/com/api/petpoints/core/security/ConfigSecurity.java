@@ -40,8 +40,9 @@ public class ConfigSecurity {
                 .authorizeHttpRequests(authorize -> authorize
 
                         .requestMatchers("/autenticacao/**").permitAll()
+                        .requestMatchers("/arquivos/**").permitAll()
 
-                        .requestMatchers("/ws/chat-interno/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE", "RULE_REST_DOUTORES")
+                        .requestMatchers("/ws/chat-interno/**").permitAll()
                         .requestMatchers("/ws/notificacoes/**").permitAll()
                         .requestMatchers("/ws/chat-atendimento/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_CLIENTE")
 

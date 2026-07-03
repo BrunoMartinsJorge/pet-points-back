@@ -1,6 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
-import br.com.api.petpoints.modules.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

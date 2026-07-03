@@ -2,7 +2,7 @@ package br.com.api.petpoints.shared.features.logs;
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.core.token.TokenService;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.models.LogsModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
@@ -55,7 +55,7 @@ public class LogsServiceImpl implements LogsService {
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Cancelou uma consulta!";
             case EDITOU_TIPO_CONSULTA ->
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Editou as informações de um tipo de consulta!";
-            default -> "";
+            default -> "Ação Efetuada - Não Registrada";
         };
     }
 

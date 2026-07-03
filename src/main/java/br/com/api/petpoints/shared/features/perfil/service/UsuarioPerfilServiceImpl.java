@@ -1,20 +1,18 @@
 package br.com.api.petpoints.shared.features.perfil.service;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.shared.features.perfil.dto.InformacoesUsuarioDto;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.AvaliacaoConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.PagamentosDto;
+import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.service.MeusPagamentosServiceImpl;
+import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
+import br.com.api.petpoints.shared.features.perfil.dto.*;
 import br.com.api.petpoints.shared.features.perfil.form.EditarPerfilForm;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
-import br.com.api.petpoints.shared.models.ArquivosModel;
-import br.com.api.petpoints.shared.models.ConsultaModel;
-import br.com.api.petpoints.shared.models.PetModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.ArquivoRepository;
-import br.com.api.petpoints.shared.repository.ConsultaRepository;
-import br.com.api.petpoints.shared.repository.PetRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.models.*;
+import br.com.api.petpoints.shared.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -34,7 +33,9 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
     private final UsuarioRepository usuarioRepository;
     private final ArquivoRepository arquivoRepository;
     private final ConsultaRepository consultaRepository;
+    private final AtendimentoRepository atendimentoRepository;
     private final PetRepository petRepository;
+    private final MeusPagamentosServiceImpl servicePagamentosCliente;
 
     private UsuarioModel getUsuarioPorId(Long id) {
         return usuarioRepository.findById(id).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: "
@@ -101,6 +102,136 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
         usuario.setStatusPerfilEnum(StatusPerfilEnum.D);
         this.usuarioRepository.save(usuario);
         log.info("[DESATIVAR PERFIL] - Operação de desativação de perfil finalizada! Perfil desabilitado!");
+    }
+
+    @Override
+    public RankingFuncionarioDto buscarInformacoesRankingAvaliacoes(Long idUsuario) {
+        log.info("[BUSCANDO RANKING DE FUNCIONARIO] - Iniciando processo de classificação de funcionarios!");
+        UsuarioModel funcionario = this.getUsuarioPorId(idUsuario);
+        if (!funcionario.getPermissao().equals(TipoUsuario.A) && !funcionario.getPermissao().equals(TipoUsuario.V))
+            throw new RuntimeException("O tipo de usuário não tem acesso a avaliações!");
+        List<AvaliacaoModel> avaliacoes;
+        if (funcionario.getPermissao().equals(TipoUsuario.A))
+            avaliacoes = this.atendimentoRepository.findAllByAtendente_IdAndAvaliacaoIsNotNull(idUsuario).stream()
+                    .map(AtendimentoModel::getAvaliacao).toList();
+        else
+            avaliacoes = this.consultaRepository.findAllByVeterinario_IdAndAvaliacaoIsNotNull(idUsuario).stream()
+                    .map(ConsultaModel::getAvaliacao).toList();
+        if (avaliacoes.isEmpty())
+            return new RankingFuncionarioDto(null, 0, null, null);
+        List<AvaliacaoModel> ordenadas = avaliacoes.stream()
+                .sorted(Comparator.comparing(AvaliacaoModel::getPontuacao))
+                .toList();
+        return funcionario.getPermissao().equals(TipoUsuario.A)
+                ? this.gerarAvaliacaoRankingAtendente(funcionario, ordenadas)
+                : this.gerarAvaliacaoRankingVeterinario(funcionario, ordenadas);
+    }
+
+    private RankingFuncionarioDto gerarAvaliacaoRankingAtendente(UsuarioModel atendente, List<AvaliacaoModel> minhasAvaliacoes) {
+        List<AtendimentoModel> atendimentos = this.atendimentoRepository.buscarAvaliacoesFinalizadas(StatusAtendimentoEnum.FINALIZADO);
+        Map<UsuarioModel, Double> mediaPorAtendente = atendimentos.stream()
+                .filter(a -> a.getAvaliacao() != null)
+                .collect(Collectors.groupingBy(
+                        AtendimentoModel::getAtendente,
+                        Collectors.averagingInt(a -> a.getAvaliacao().getPontuacao())
+                ));
+        List<UsuarioModel> ranking = mediaPorAtendente.entrySet().stream()
+                .sorted(Map.Entry.<UsuarioModel, Double>comparingByValue().reversed())
+                .map(Map.Entry::getKey)
+                .toList();
+
+        int classificacao = ranking.indexOf(atendente) + 1;
+        AtomicInteger pontuacao = new AtomicInteger();
+        minhasAvaliacoes.forEach(avaliacao -> {
+            pontuacao.addAndGet(avaliacao.getPontuacao());
+        });
+        return new RankingFuncionarioDto(
+                classificacao,
+                pontuacao.get(),
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst()),
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast())
+        );
+    }
+
+    private RankingFuncionarioDto gerarAvaliacaoRankingVeterinario(UsuarioModel veterinario, List<AvaliacaoModel> minhasAvaliacoes) {
+        List<ConsultaModel> consultas = this.consultaRepository.buscarAvaliacoesFinalizadas();
+        Map<UsuarioModel, Double> mediaPorVeterinario = consultas.stream()
+                .filter(a -> a.getAvaliacao() != null)
+                .collect(Collectors.groupingBy(
+                        ConsultaModel::getAtendente,
+                        Collectors.averagingInt(a -> a.getAvaliacao().getPontuacao())
+                ));
+        List<UsuarioModel> ranking = mediaPorVeterinario.entrySet().stream()
+                .sorted(Map.Entry.<UsuarioModel, Double>comparingByValue().reversed())
+                .map(Map.Entry::getKey)
+                .toList();
+
+        int classificacao = ranking.indexOf(veterinario) + 1;
+        AtomicInteger pontuacao = new AtomicInteger();
+        minhasAvaliacoes.forEach(avaliacao -> {
+            pontuacao.addAndGet(avaliacao.getPontuacao());
+        });
+        return new RankingFuncionarioDto(
+                classificacao,
+                pontuacao.get(),
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst()),
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast())
+        );
+    }
+
+    @Override
+    public List<AvaliacaoConsultaDto> buscarAvaliacoes(Long idUsuario) {
+        UsuarioModel funcionario = this.getUsuarioPorId(idUsuario);
+        if (!funcionario.getPermissao().equals(TipoUsuario.A) && !funcionario.getPermissao().equals(TipoUsuario.V))
+            throw new RuntimeException("O tipo de usuário não tem acesso a avaliações!");
+        List<AvaliacaoModel> avaliacoes;
+        if (funcionario.getPermissao().equals(TipoUsuario.A))
+            avaliacoes = this.atendimentoRepository.findAllByAtendente_Id(idUsuario).stream()
+                    .map(AtendimentoModel::getAvaliacao).toList();
+        else
+            avaliacoes = this.consultaRepository.findAllByVeterinario_IdAndAvaliacaoIsNotNull(idUsuario).stream()
+                    .map(ConsultaModel::getAvaliacao).toList();
+        return AvaliacaoConsultaDto.convert(avaliacoes);
+    }
+
+    @Override
+    public List<ConsultasAtendenteVeterinarioDto> buscarConsultasAtendenteVeterinario(Long idUsuario) {
+        UsuarioModel funcionario = this.getUsuarioPorId(idUsuario);
+        if (!funcionario.getPermissao().equals(TipoUsuario.A) && !funcionario.getPermissao().equals(TipoUsuario.V))
+            throw new RuntimeException("O tipo de usuário não tem acesso a avaliações!");
+        List<ConsultaModel> consultas;
+        if (funcionario.getPermissao().equals(TipoUsuario.A))
+            consultas = this.consultaRepository.findAllByAtendente_Id(idUsuario);
+        else
+            consultas = this.consultaRepository.findAllByVeterinario_IdAndAvaliacaoIsNotNull(idUsuario);
+        return ConsultasAtendenteVeterinarioDto.convert(consultas);
+    }
+
+    @Override
+    public RelatorioFinanceiroClienteDto buscarRelatorioFinanceiroCliente(Long idUsuario) {
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
+        if (!cliente.getPermissao().equals(TipoUsuario.C))
+            throw new RuntimeException("O tipo de usuário não tem acesso a essa feature!");
+        List<PagamentosDto> pagamentosAtrasados = this.servicePagamentosCliente.listarPagamentosPendentesAtrasados(idUsuario);
+        double saldoPendente = pagamentosAtrasados.stream().map(PagamentosDto::getValor).reduce(0.0, Double::sum);
+        return new RelatorioFinanceiroClienteDto(pagamentosAtrasados.size(), saldoPendente, pagamentosAtrasados);
+    }
+
+    @Override
+    public List<MinhasAvaliacoesDto> buscarMinhasAvaliacoes(Long idUsuario) {
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
+        if (!cliente.getPermissao().equals(TipoUsuario.C))
+            throw new RuntimeException("O tipo de usuário não tem acesso a essa feature!");
+        List<AvaliacaoModel> avaliacoesConsulta = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.FINALIZADO).stream().map(ConsultaModel::getAvaliacao).toList();
+        List<AvaliacaoModel> avaliacoesAtendimento = this.atendimentoRepository.findAllByCliente_IdAndStatus(idUsuario, StatusAtendimentoEnum.FINALIZADO).stream().map(AtendimentoModel::getAvaliacao).toList();
+        List<MinhasAvaliacoesDto> dto = new ArrayList<>();
+        for (AvaliacaoModel avaliacao : avaliacoesConsulta) {
+            dto.add(new MinhasAvaliacoesDto(avaliacao, "CONSULTA"));
+        }
+        for (AvaliacaoModel avaliacao : avaliacoesAtendimento) {
+            dto.add(new MinhasAvaliacoesDto(avaliacao, "ATENDIMENTO"));
+        }
+        return dto;
     }
 
     @Transactional

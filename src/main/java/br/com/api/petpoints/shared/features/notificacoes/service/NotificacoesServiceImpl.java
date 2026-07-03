@@ -1,7 +1,6 @@
 package br.com.api.petpoints.shared.features.notificacoes.service;
 
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.features.notificacoes.dto.NotificacoesDto;
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.models.NotificacaoModel;

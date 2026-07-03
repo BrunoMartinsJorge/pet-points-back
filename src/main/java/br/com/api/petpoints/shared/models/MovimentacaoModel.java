@@ -1,6 +1,6 @@
 package br.com.api.petpoints.shared.models;
 
-import br.com.api.petpoints.modules.users.estoquista.features.movimentacoes.form.NovaMovimentacaoForm;
+import br.com.api.petpoints.domain.users.estoquista.features.movimentacoes.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

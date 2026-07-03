@@ -1,6 +1,6 @@
 package br.com.api.petpoints.shared.features.arquivos.service;
 
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.models.ArquivosModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;

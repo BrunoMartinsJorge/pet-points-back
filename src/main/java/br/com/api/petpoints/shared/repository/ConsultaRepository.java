@@ -1,9 +1,7 @@
 package br.com.api.petpoints.shared.repository;
 
-import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
-import br.com.api.petpoints.shared.models.AtendimentoModel;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +16,7 @@ public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
     List<ConsultaModel> findAllByPet_IdAndStatus(Long id, StatusConsultaEnum status);
     List<ConsultaModel> findAllBySolicitante_IdAndPagamentoIsNull(Long id);
     List<ConsultaModel> findAllBySolicitante_IdAndStatus(Long id, StatusConsultaEnum status);
+    List<ConsultaModel> findAllByVeterinario_IdAndAvaliacaoIsNotNull(Long id);
     List<ConsultaModel> findAllByVeterinario_Id(Long id);
     List<ConsultaModel> findAllByAtendente_Id(Long id);
     List<ConsultaModel> findAllByStatus(StatusConsultaEnum status);
@@ -39,4 +38,7 @@ public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
 
     @Query("SELECT u FROM ConsultaModel u WHERE u.pet.id = ?1 and u.status = 'PENDENTE' or u.status = 'INICIADO'")
     List<ConsultaModel> buscarConsultasPendenteOuIniciadas(Long idPet);
+
+    @Query("SELECT h FROM ConsultaModel h WHERE h.status = 'FINALIZADO' AND h.avaliacao IS NOT NULL")
+    List<ConsultaModel> buscarAvaliacoesFinalizadas();
 }

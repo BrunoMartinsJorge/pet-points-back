@@ -1,7 +1,7 @@
 package br.com.api.petpoints.core.security;
 
 import br.com.api.petpoints.core.token.TokenService;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.exception.custom.TokenExpiradaException;
 import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
@@ -36,7 +36,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                 "/autenticacao/validar-codigo-alterar-senha",
                 "/autenticacao/redefinir-senha"
         );
-        if (path.startsWith("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem")) {
+        if (path.contains("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem")) {
             filterChain.doFilter(request, response);
             return;
         }

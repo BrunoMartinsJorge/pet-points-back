@@ -1,7 +1,7 @@
 package br.com.api.petpoints.shared.features.chatatendimento.service;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.modules.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatMensagemDto;
@@ -18,6 +18,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ChatAtendimentoService {
@@ -27,35 +29,61 @@ public class ChatAtendimentoService {
     private final AtendimentoRepository atendimentoRepository;
     private final UsuarioRepository usuarioRepository;
 
-    private AtendimentoModel getAtendimentoPorId(Long idChat) {
-        return this.atendimentoRepository.findByChat_Id(idChat).orElseThrow(() -> new ObjectNotFoundException("Chat de atendimento com ID: " + idChat + " não encontrado!"));
-    }
-
-    private UsuarioModel getUsuarioPorId(Long idUsuario) {
-        return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario + " não encontrado!"));
-    }
-
     @Transactional
     public ChatMensagemDto enviarMensagem(MensagemAtendimentoForm form, Long idUsuario) {
         UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
-        ChatModel chat = this.getAtendimentoPorId(idUsuario).getChat();
-        this.chatAtendimentoPodeReceberMensagem(form.getIdChat(), usuario.getId());
-        return new ChatMensagemDto(this.mensagemRepository.save(new MensagemModel(chat, usuario, form.getMensagem())), idUsuario);
+        AtendimentoModel atendimento = this.getAtendimentoPorChat(form.getIdChat());
+
+        this.validarEnvio(atendimento, usuario);
+
+        ChatModel chat = atendimento.getChat();
+        MensagemModel salva =
+                this.mensagemRepository.save(new MensagemModel(chat, usuario, form.getMensagem()));
+
+        return new ChatMensagemDto(salva, idUsuario);
     }
 
     @Transactional
-    protected void chatAtendimentoPodeReceberMensagem(Long idChat, Long idUsuario) {
-        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
-        AtendimentoModel chat = this.getAtendimentoPorId(idChat);
-        if (chat.getStatus() == StatusAtendimentoEnum.FINALIZADO)
-            throw new RuntimeException("O chat de atendimento está finalizado!");
-        if (usuario.getPermissao() == TipoUsuario.C && chat.getStatus() != StatusAtendimentoEnum.EM_ANDAMENTO)
-            throw new RuntimeException("O chat em questão não foi iniciado por um atendente, aguarde!");
-        if(usuario.getPermissao() == TipoUsuario.A) {
-            if(chat.getStatus() == StatusAtendimentoEnum.PENDENTE){
-                chat.setStatus(StatusAtendimentoEnum.EM_ANDAMENTO);
-                this.atendimentoRepository.save(chat);
-            }
+    public List<ChatMensagemDto> historico(Long idChat, Long idUsuario) {
+        AtendimentoModel atendimento = this.getAtendimentoPorChat(idChat);
+        boolean participa =
+                atendimento.getCliente().getId().equals(idUsuario)
+                        || (atendimento.getAtendente() != null
+                        && atendimento.getAtendente().getId().equals(idUsuario));
+        if (!participa) {
+            throw new RuntimeException("Você não participa deste atendimento!");
         }
+        return ChatMensagemDto.convert(
+                this.mensagemRepository.findByChat_IdOrderByEnviadoEmAsc(idChat), idUsuario);
+    }
+
+    @Transactional
+    protected void validarEnvio(AtendimentoModel atendimento, UsuarioModel usuario) {
+        if (atendimento.getStatus() == StatusAtendimentoEnum.FINALIZADO)
+            throw new RuntimeException("O chat de atendimento está finalizado!");
+
+        // Cliente só pode escrever depois que um atendente iniciou (UC021).
+        if (usuario.getPermissao() == TipoUsuario.C
+                && atendimento.getStatus() != StatusAtendimentoEnum.EM_ANDAMENTO)
+            throw new RuntimeException("O chat em questão não foi iniciado por um atendente, aguarde!");
+
+        // Atendente que responde a um pendente assume e inicia o atendimento (UC021).
+        if (usuario.getPermissao() == TipoUsuario.A
+                && atendimento.getStatus() == StatusAtendimentoEnum.PENDENTE) {
+            atendimento.setStatus(StatusAtendimentoEnum.EM_ANDAMENTO);
+            atendimento.setAtendente(usuario);
+            atendimento.setIniciadoEm(java.time.LocalDateTime.now());
+            this.atendimentoRepository.save(atendimento);
+        }
+    }
+
+    private AtendimentoModel getAtendimentoPorChat(Long idChat) {
+        return this.atendimentoRepository.findByChat_Id(idChat)
+                .orElseThrow(() -> new ObjectNotFoundException("Chat de atendimento com ID: " + idChat + " não encontrado!"));
+    }
+
+    private UsuarioModel getUsuarioPorId(Long idUsuario) {
+        return this.usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario + " não encontrado!"));
     }
 }
