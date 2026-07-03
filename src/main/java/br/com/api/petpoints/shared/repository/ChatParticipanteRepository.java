@@ -26,4 +26,8 @@ public interface ChatParticipanteRepository extends JpaRepository<ChatParticipan
             @Param("user1") Long user1,
             @Param("user2") Long user2
     );
+
+    boolean existsByChat_IdAndParticipante_Id(Long idChat, Long idUsuario);
+
+    List<ChatParticipanteModel> findByChat_Id(Long idChat);
 }

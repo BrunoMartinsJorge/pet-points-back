@@ -17,6 +17,7 @@ import java.util.Objects;
 public class ChatMensagemDto {
     private Long id;
     private Long idChat;
+    private Long remetenteId;
     private String enviadoPor;
     private String mensagem;
     private LocalDateTime enviadoEm;
@@ -25,6 +26,7 @@ public class ChatMensagemDto {
     public ChatMensagemDto(MensagemModel message, Long idUsuario) {
         this.id = message.getId();
         this.idChat = message.getChat().getId();
+        this.remetenteId = message.getRemetente().getId();
         this.enviadoPor = message.getRemetente().getNome();
         this.mensagem = message.getConteudo();
         this.enviadoEm = message.getEnviadoEm();
