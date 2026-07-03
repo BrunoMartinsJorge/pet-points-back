@@ -65,7 +65,8 @@ public class MeusPetsClienteServiceImpl implements MeusPetsClienteService {
         Optional<UsuarioModel> user = this.usuarioRepository.findById(idUsuario);
         if (user.isEmpty()) throw new UsuarioNaoEncontrado("Usuário com ID " + idUsuario + " não encontrado!");
         PetModel pet = new PetModel(form, user.get());
-        pet.setImagem(this.salvarArquivo(foto));
+        if (foto != null && !foto.isEmpty())
+            pet.setImagem(this.salvarArquivo(foto));
         pet = this.petRepository.save(pet);
         return new MeuPetDto(pet);
     }
