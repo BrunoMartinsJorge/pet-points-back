@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface MensagemRepository extends JpaRepository<MensagemModel, Long> {
     List<MensagemModel> findByChat_IdOrderByEnviadoEmAsc(Long idChat);
+    List<MensagemModel> findAllByChat_IdOrderByEnviadoEmAsc(Long idChat);
 }

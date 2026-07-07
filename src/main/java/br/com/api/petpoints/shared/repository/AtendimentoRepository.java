@@ -19,6 +19,9 @@ public interface AtendimentoRepository extends JpaRepository<AtendimentoModel, L
 
     List<AtendimentoModel> findAllByAtendente_IdAndStatus(Long id, StatusAtendimentoEnum status);
 
+    @Query("SELECT h FROM AtendimentoModel h WHERE h.atendente IS NULL AND h.status = ?1")
+    List<AtendimentoModel> buscarSolicitacoesAtendimentos(StatusAtendimentoEnum status);
+
     List<AtendimentoModel> findAllByCliente_IdAndStatus(Long id, StatusAtendimentoEnum status);
 
     Optional<AtendimentoModel> findByChat_Id(Long id);

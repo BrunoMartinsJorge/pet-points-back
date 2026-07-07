@@ -50,4 +50,11 @@ public class AtendimentoModel {
     @OneToOne
     @JoinColumn(name = "avaliacao_id")
     private AvaliacaoModel avaliacao;
+
+    public AtendimentoModel(UsuarioModel cliente, ChatModel chat, String mensagem) {
+        this.cliente = cliente;
+        this.chat = chat;
+        this.primeiraMensagem = mensagem;
+        this.status = StatusAtendimentoEnum.PENDENTE;
+    }
 }

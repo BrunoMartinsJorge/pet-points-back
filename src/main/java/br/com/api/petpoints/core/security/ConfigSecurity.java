@@ -44,7 +44,7 @@ public class ConfigSecurity {
 
                         .requestMatchers("/ws/chat-interno/**").permitAll()
                         .requestMatchers("/ws/notificacoes/**").permitAll()
-                        .requestMatchers("/ws/chat-atendimento/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_CLIENTE")
+                        .requestMatchers("/ws/chat-atendimento/**").permitAll()
 
                         .requestMatchers("/cliente/meus-pets/imagem/**").permitAll()
 
