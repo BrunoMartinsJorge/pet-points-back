@@ -6,15 +6,15 @@ import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatAtendimentoD
 import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatMensagemDto;
 import br.com.api.petpoints.shared.features.chatatendimento.dto.SolicitacoesAtendimentosDto;
 import br.com.api.petpoints.shared.features.chatatendimento.forms.MensagemAtendimentoForm;
-import br.com.api.petpoints.shared.features.chatatendimento.forms.SolicitacaoAtendimentoForm;
 import br.com.api.petpoints.shared.features.chatatendimento.service.ChatAtendimentoService;
+import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatAtendimentoController {
@@ -53,6 +54,18 @@ public class ChatAtendimentoController {
     public ResponseEntity<List<ChatMensagemDto>> buscarMensagensCliente(@PathVariable Long idChat,
                                                                         HttpServletRequest request) {
         return ResponseEntity.ok(this.chatAtendimentoService.buscarMensagens(idChat, idUsuario(request)));
+    }
+
+    @GetMapping("/chat-atendimento/selecionar-atendimento/{idChat}")
+    @ResponseBody
+    public ResponseEntity<ChatAtendimentoDto> buscarAtendimentoPorChatId(@PathVariable Long idChat) {
+        return ResponseEntity.ok(this.chatAtendimentoService.buscarAtendimentoSelecionado(idChat));
+    }
+
+    @PostMapping("/chat-atendimento/cliente/{idChat}")
+    public ResponseEntity<Void> finalizarAtendimento(@PathVariable Long idChat, @RequestBody AvaliacaoForm form, HttpServletRequest request) {
+        this.chatAtendimentoService.finalizarAtendimento(this.idUsuario(request), idChat, form);
+        return ResponseEntity.ok().build();
     }
 
     // ------------------------------------------------------------ atendente (REST)
@@ -92,13 +105,9 @@ public class ChatAtendimentoController {
     /** Cliente e atendente publicam aqui; a mensagem é persistida e reemitida no topico da sessao. */
     @MessageMapping("/chat-atendimento/send")
     public void enviar(@Payload MensagemAtendimentoForm form, Principal principal) {
+        log.info("Mensagem de atendimento recebida! {}", form);
         ChatMensagemDto dto = this.chatAtendimentoService.processarMensagem(form, idUsuario(principal));
         this.template.convertAndSend(TOPICO_SESSAO + dto.getIdChat(), dto);
-    }
-
-    @GetMapping("/chat-atendimento/selecionar-atendimento/{idChat}")
-    public ResponseEntity<ChatAtendimentoDto> buscarAtendimentoSelecionado(@PathVariable Long idChat) {
-        return ResponseEntity.ok().body(this.chatAtendimentoService.buscarAtendimentoSelecionado(idChat));
     }
 
     // ---------------------------------------------------------------- helpers

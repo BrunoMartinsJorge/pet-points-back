@@ -2,7 +2,7 @@ package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.contr
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
-import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
+import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service.MinhasConsultasClienteServiceImpl;
@@ -111,7 +111,7 @@ public class MinhasConsultasClienteController {
     }
 
     @PostMapping("/avaliar-consulta/{idConsulta}")
-    public ResponseEntity<Void> enviarAvaliacaoConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody AvaliacaoConsultaForm form) {
+    public ResponseEntity<Void> enviarAvaliacaoConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody AvaliacaoForm form) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         this.minhasConsultasClienteServiceImpl.avaliarConsulta(token.getIdUsuario(), idConsulta, form);
         return ResponseEntity.ok().build();

@@ -1,7 +1,7 @@
 package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
-import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.AvaliacaoConsultaForm;
+import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
@@ -251,7 +251,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     @Transactional
-    public void avaliarConsulta(Long idUsuario, Long idConsulta, AvaliacaoConsultaForm form) {
+    public void avaliarConsulta(Long idUsuario, Long idConsulta, AvaliacaoForm form) {
         UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         this.consultaPertenceCliente(consulta, cliente);

@@ -5,26 +5,23 @@ import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.enums.TipoChatEnum;
+import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.AtendimentoDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatAtendimentoDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatMensagemDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.SolicitacoesAtendimentosDto;
+import br.com.api.petpoints.shared.features.chatatendimento.dto.*;
 import br.com.api.petpoints.shared.features.chatatendimento.forms.MensagemAtendimentoForm;
 import br.com.api.petpoints.shared.features.chatatendimento.forms.SolicitacaoAtendimentoForm;
-import br.com.api.petpoints.shared.models.AtendimentoModel;
-import br.com.api.petpoints.shared.models.ChatModel;
-import br.com.api.petpoints.shared.models.MensagemModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.AtendimentoRepository;
-import br.com.api.petpoints.shared.repository.ChatRepository;
-import br.com.api.petpoints.shared.repository.MensagemRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
+import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
+import br.com.api.petpoints.shared.form.AvaliacaoForm;
+import br.com.api.petpoints.shared.models.*;
+import br.com.api.petpoints.shared.repository.*;
 import jakarta.persistence.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,23 +29,33 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatAtendimentoService {
+
+    private static final String TOPICO_STATUS = "/topic/chat-atendimento/status/";
 
     private final MensagemRepository mensagemRepository;
     private final ChatRepository chatRepository;
     private final AtendimentoRepository atendimentoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AvaliacaoRepository avaliacaoRepository;
+    private final NotificacoesController notificacoesController;
+    private final SimpMessagingTemplate template;
 
     // ------------------------------------------------------------------ cliente
 
-    /** Atendimentos do cliente logado (com o nome do atendente, se ja houver). */
+    /**
+     * Atendimentos do cliente logado (com o nome do atendente, se ja houver).
+     */
     @Transactional
     public List<AtendimentoDto> listarAtendimentosCliente(Long idCliente) {
         return this.atendimentoRepository.findAllByCliente_Id(idCliente)
                 .stream().map(AtendimentoDto::new).toList();
     }
 
-    /** UC – cliente abre uma nova solicitacao de atendimento (status PENDENTE). */
+    /**
+     * UC – cliente abre uma nova solicitacao de atendimento (status PENDENTE).
+     */
     @Transactional
     public void solicitarAtendimento(String mensagem, Long idCliente) {
         if (mensagem == null || mensagem.isBlank())
@@ -65,7 +72,9 @@ public class ChatAtendimentoService {
 
     // ------------------------------------------------------------------ atendente
 
-    /** Solicitacoes ainda sem atendente e com status PENDENTE. */
+    /**
+     * Solicitacoes ainda sem atendente e com status PENDENTE.
+     */
     @Transactional
     public List<SolicitacoesAtendimentosDto> listarSolicitacoes() {
         return this.atendimentoRepository
@@ -73,7 +82,9 @@ public class ChatAtendimentoService {
                 .stream().map(SolicitacoesAtendimentosDto::new).toList();
     }
 
-    /** Atendente assume a solicitacao: define o atendente, muda o status e marca o inicio. */
+    /**
+     * Atendente assume a solicitacao: define o atendente, muda o status e marca o inicio.
+     */
     @Transactional
     public ChatAtendimentoDto aceitarSolicitacao(Long idAtendimento, Long idAtendente) {
         UsuarioModel atendente = this.getUsuario(idAtendente);
@@ -89,10 +100,15 @@ public class ChatAtendimentoService {
         atendimento.setStatus(StatusAtendimentoEnum.EM_ANDAMENTO);
         atendimento.setIniciadoEm(LocalDateTime.now());
 
-        return new ChatAtendimentoDto(this.atendimentoRepository.save(atendimento));
+        atendimento = this.atendimentoRepository.save(atendimento);
+        this.emitirStatus(atendimento);
+
+        return new ChatAtendimentoDto(atendimento);
     }
 
-    /** Atendimentos que o atendente logado ja assumiu. */
+    /**
+     * Atendimentos que o atendente logado ja assumiu.
+     */
     @Transactional
     public List<ChatAtendimentoDto> listarMeusAtendimentos(Long idAtendente) {
         return this.atendimentoRepository.findAllByAtendente_Id(idAtendente)
@@ -101,12 +117,41 @@ public class ChatAtendimentoService {
 
     // ------------------------------------------------------------------ mensagens
 
-    /** Historico do chat (usado para semear o WebSocket ao abrir a conversa). */
+    /**
+     * Historico do chat (usado para semear o WebSocket ao abrir a conversa).
+     */
     @Transactional
     public List<ChatMensagemDto> buscarMensagens(Long idChat, Long idUsuario) {
         this.exigirParticipante(idChat, idUsuario);
         return ChatMensagemDto.convert(
                 this.mensagemRepository.findByChat_IdOrderByEnviadoEmAsc(idChat), idUsuario);
+    }
+
+    @Transactional
+    public void finalizarAtendimento(Long idUsuario, Long idChat, AvaliacaoForm form) {
+        UsuarioModel cliente = this.getUsuario(idUsuario);
+        AtendimentoModel atendimento = this.getAtendimentoPorChat(idChat);
+        if (!cliente.equals(atendimento.getCliente()))
+            throw new RuntimeException("Você não tem acesso ao atendimento em questão!");
+        atendimento.setStatus(StatusAtendimentoEnum.FINALIZADO);
+        AvaliacaoModel avaliacao = new AvaliacaoModel(form, cliente);
+        avaliacao = this.avaliacaoRepository.save(avaliacao);
+        atendimento.setAvaliacao(avaliacao);
+        atendimento = this.atendimentoRepository.save(atendimento);
+        this.emitirStatus(atendimento);
+        NovaNotificacaoForm notificacao = new NovaNotificacaoForm(
+                atendimento.getAtendente().getId(),
+                "Finalizado",
+                "Cliente finalizou atendimento!",
+                TiposNotificacoesEnum.ATENDIMENTO
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de aprovação de pagamento enviada ao cliente!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de aprovação de pagamento ao cliente!");
+            throw new RuntimeException("Ocorreu um erro ao gerar notificação de cliente da consulta!");
+        }
     }
 
     /**
@@ -129,7 +174,8 @@ public class ChatAtendimentoService {
             atendimento.setAtendente(remetente);
             atendimento.setStatus(StatusAtendimentoEnum.EM_ANDAMENTO);
             atendimento.setIniciadoEm(LocalDateTime.now());
-            this.atendimentoRepository.save(atendimento);
+            atendimento = this.atendimentoRepository.save(atendimento);
+            this.emitirStatus(atendimento);
         }
 
         MensagemModel salva = this.mensagemRepository.save(
@@ -145,6 +191,17 @@ public class ChatAtendimentoService {
 
     // ------------------------------------------------------------------ helpers
 
+    /**
+     * Publica a mudança de status no tópico do chat, para o lado que não fez a ação
+     * (cliente quando o atendente aceita, atendente quando o cliente finaliza) atualizar
+     * a tela em tempo real, sem precisar de reload ou de um novo GET.
+     */
+    private void emitirStatus(AtendimentoModel atendimento) {
+        this.template.convertAndSend(
+                TOPICO_STATUS + atendimento.getChat().getId(),
+                new StatusAtendimentoDto(atendimento));
+    }
+
     private AtendimentoModel getAtendimentoPorChat(Long idChat) {
         if (idChat == null)
             throw new RuntimeException("O idChat da mensagem nao foi informado!");
@@ -157,7 +214,9 @@ public class ChatAtendimentoService {
         this.exigirParticipante(this.getAtendimentoPorChat(idChat), idUsuario);
     }
 
-    /** So o cliente dono da conversa ou o atendente que a assumiu podem ver/enviar. */
+    /**
+     * So o cliente dono da conversa ou o atendente que a assumiu podem ver/enviar.
+     */
     private void exigirParticipante(AtendimentoModel atendimento, Long idUsuario) {
         boolean ehCliente = atendimento.getCliente() != null
                 && atendimento.getCliente().getId().equals(idUsuario);
