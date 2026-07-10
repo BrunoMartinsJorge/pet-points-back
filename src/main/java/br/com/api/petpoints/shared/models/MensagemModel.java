@@ -29,7 +29,7 @@ public class MensagemModel {
     @JoinColumn(name = "remetente_id")
     private UsuarioModel remetente;
 
-    @Length(min = 8, max = 255)
+    @Length(min = 1, max = 255)
     @NotBlank(message = "O campo 'conteudo' não pode estar em branco!")
     private String conteudo;
 

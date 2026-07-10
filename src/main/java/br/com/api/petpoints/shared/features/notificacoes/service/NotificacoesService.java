@@ -9,5 +9,5 @@ public interface NotificacoesService {
 
     List<NotificacoesDto> buscarNotificacoesPorUsuario(Long idUsuario);
     NotificacoesDto enviarNovaNotificacao(NovaNotificacaoForm form);
-    void marcarNotificacoesComoLidas(List<Long> idNotificacoes);
+    void marcarNotificacoesComoLidas(Long idNotificacao, Long idUsuario);
 }

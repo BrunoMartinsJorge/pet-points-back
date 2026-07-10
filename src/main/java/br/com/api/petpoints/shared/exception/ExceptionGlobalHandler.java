@@ -89,4 +89,15 @@ public class ExceptionGlobalHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(IllegalAccessException.class)
+    public ResponseEntity<StandardException> IllegalAccess(IllegalAccessException ex, HttpServletRequest request) {
+        StandardException error = new StandardException(
+                LocalDateTime.now(),
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        logsService.registrarException(ex, request, HttpStatus.METHOD_NOT_ALLOWED);
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
 }

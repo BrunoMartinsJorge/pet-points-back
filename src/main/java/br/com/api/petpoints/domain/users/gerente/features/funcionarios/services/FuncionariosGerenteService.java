@@ -1,6 +1,6 @@
 package br.com.api.petpoints.domain.users.gerente.features.funcionarios.services;
 
-import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.AvaliacoesDto;
+import br.com.api.petpoints.shared.dto.AvaliacoesDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.ConsultaFuncionarioDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.FuncionarioDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.MovimentacoesEstoquistasDto;

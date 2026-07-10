@@ -11,10 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
@@ -50,10 +47,10 @@ public class NotificacoesController {
         );
     }
 
-    @PutMapping("/marcar-lidas")
-    public void marcarTodasComoLidas(HttpServletRequest request, @RequestBody List<Long> idNotificacoes) {
+    @PutMapping("/marcar-lida/{idNotificacao}")
+    public void marcarTodasComoLidas(HttpServletRequest request, @PathVariable Long idNotificacao) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.notificacoesService.marcarNotificacoesComoLidas(idNotificacoes);
+        this.notificacoesService.marcarNotificacoesComoLidas(idNotificacao, token.getIdUsuario());
 
         List<NotificacoesDto> lista =
                 this.notificacoesService.buscarNotificacoesPorUsuario(token.getIdUsuario());

@@ -3,6 +3,7 @@ package br.com.api.petpoints.core.security;
 import br.com.api.petpoints.core.token.TokenService;
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
 import br.com.api.petpoints.shared.exception.custom.TokenExpiradaException;
 import br.com.api.petpoints.shared.exception.custom.TokenNaoEncontradaException;
 import br.com.api.petpoints.shared.models.UsuarioModel;
@@ -53,7 +54,7 @@ public class SecurityFilter extends OncePerRequestFilter {
     private UsernamePasswordAuthenticationToken validarUsuario(Long idUsuario) {
         UsuarioModel user = this.usuarioReporitory.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario + " não encontrado!"));
         if (user.getStatusPerfilEnum() == StatusPerfilEnum.D)
-            throw new RuntimeException("Atividade de perfil desabilitado executada!"); // Illegal
+            throw new IllegalAccessException("Atividade de perfil desabilitado executada!");
         return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }
 

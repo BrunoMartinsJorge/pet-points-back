@@ -19,16 +19,20 @@ public class ChatAtendimentoDto {
     private Long id;
     private Long chatId;
     private String cliente;
+    private String atendente;
     private StatusAtendimentoEnum status;
     private LocalDateTime solicitadoEm;
+    private LocalDateTime finalizadoEm;
     private String mensagem;
 
     public ChatAtendimentoDto(AtendimentoModel atendimento) {
         this.id = atendimento.getId();
         this.chatId = atendimento.getChat().getId();
         this.cliente = atendimento.getCliente().getNome();
+        this.atendente = atendimento.getCliente() != null ? atendimento.getCliente().getNome() : "Não Atendido";
         this.status = atendimento.getStatus();
         this.solicitadoEm = atendimento.getSolicitadoEm();
+        this.finalizadoEm = atendimento.getFinalizadoEm();
         this.mensagem = atendimento.getPrimeiraMensagem();
     }
 

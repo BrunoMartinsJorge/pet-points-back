@@ -1,10 +1,8 @@
 package br.com.api.petpoints.shared.features.chatatendimento.controller;
 
 import br.com.api.petpoints.core.token.TokenModel;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.AtendimentoDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatAtendimentoDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.ChatMensagemDto;
-import br.com.api.petpoints.shared.features.chatatendimento.dto.SolicitacoesAtendimentosDto;
+import br.com.api.petpoints.shared.dto.AvaliacoesDto;
+import br.com.api.petpoints.shared.features.chatatendimento.dto.*;
 import br.com.api.petpoints.shared.features.chatatendimento.forms.MensagemAtendimentoForm;
 import br.com.api.petpoints.shared.features.chatatendimento.service.ChatAtendimentoService;
 import br.com.api.petpoints.shared.form.AvaliacaoForm;
@@ -66,6 +64,16 @@ public class ChatAtendimentoController {
     public ResponseEntity<Void> finalizarAtendimento(@PathVariable Long idChat, @RequestBody AvaliacaoForm form, HttpServletRequest request) {
         this.chatAtendimentoService.finalizarAtendimento(this.idUsuario(request), idChat, form);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/chat-atendimento/avaliacao/{idChat}")
+    public ResponseEntity<AvaliacoesDto> buscarAvaliacaoAtendimento(@PathVariable Long idChat, HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.chatAtendimentoService.buscarAvaliacaoPorAtendimento(idChat, this.idUsuario(request)));
+    }
+
+    @GetMapping("/chat-atendimento/atendente/cards")
+    public ResponseEntity<CardsAtendimentoAtendenteDto> buscarInformacoesCards(HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.chatAtendimentoService.buscarInformacoesCardsAtendente(this.idUsuario(request)));
     }
 
     // ------------------------------------------------------------ atendente (REST)

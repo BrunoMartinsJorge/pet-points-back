@@ -1,4 +1,4 @@
-package br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto;
+package br.com.api.petpoints.shared.dto;
 
 import br.com.api.petpoints.shared.models.AvaliacaoModel;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;

@@ -6,6 +6,7 @@ import br.com.api.petpoints.shared.dto.ProdutoFiltroDto;
 import br.com.api.petpoints.domain.users.estoquista.features.movimentacoes.form.NovaMovimentacaoForm;
 import br.com.api.petpoints.domain.users.estoquista.features.movimentacoes.form.RelatorioMovimentacoesForm;
 import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.models.MovimentacaoModel;
 import br.com.api.petpoints.shared.models.ProdutoModel;
@@ -67,7 +68,7 @@ public class MinhasMovimentacoesServiceImpl implements MinhasMovimentacoesServic
         ProdutoModel produto = this.getProdutoPorId(form.getIdProduto());
         UsuarioModel usuario = this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("O usuário com ID: " + idUsuario + " não foi encontrado!"));
         if (form.getTipoMovimentacao() == TipoMovimentacaoEnum.SAIDA && (produto.getQuantidadeEstoque() < form.getQuantidadeMovimentada()))
-            throw new RuntimeException("O produto não possui quantidade suficiente para realizar a saida!"); // Illegal
+            throw new IllegalAccessException("O produto não possui quantidade suficiente para realizar a saida!");
         int quantidade = form.getTipoMovimentacao() == TipoMovimentacaoEnum.ENTRADA ? produto.getQuantidadeEstoque() + form.getQuantidadeMovimentada() : produto.getQuantidadeEstoque() - form.getQuantidadeMovimentada();
         produto.setQuantidadeEstoque(quantidade);
         this.produtoRepository.save(produto);

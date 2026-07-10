@@ -2,7 +2,7 @@ package br.com.api.petpoints.domain.users.gerente.features.funcionarios.controll
 
 import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.core.token.TokenModel;
-import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.AvaliacoesDto;
+import br.com.api.petpoints.shared.dto.AvaliacoesDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.ConsultaFuncionarioDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.FuncionarioDto;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto.MovimentacoesEstoquistasDto;
