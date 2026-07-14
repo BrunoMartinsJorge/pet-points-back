@@ -37,7 +37,7 @@ public class ChatInternoService {
         this.verificarPermissaoFuncionario(idUsuario);
 
         List<UsuarioModel> funcionarios =
-                this.usuarioRepository.findAllByPermissaoNotAndIdNot(TipoUsuario.C, idUsuario);
+                this.usuarioRepository.findAllByPermissaoNotAndIdNot(TipoUsuario.C, idUsuario).stream().filter(funcionario -> funcionario.getStatusPerfilEnum().equals(StatusPerfilEnum.A)).toList();
 
         return funcionarios.stream().map(funcionario -> {
             Long idChat = this.chatParticipanteRepository
@@ -53,7 +53,9 @@ public class ChatInternoService {
         return this.getOuCriarChat(idUsuario, idDestinatario).getId();
     }
 
-    /** Histórico do chat, validando que o solicitante participa dele (UC036 / T1). */
+    /**
+     * Histórico do chat, validando que o solicitante participa dele (UC036 / T1).
+     */
     @Transactional
     public List<MensagemInternaDto> historico(Long idChat, Long idUsuario) {
         this.exigirParticipante(idChat, idUsuario);
@@ -73,7 +75,9 @@ public class ChatInternoService {
 
     // ---------------------------------------------------------------- envio (WS)
 
-    /** UC020 – persiste a mensagem e devolve o DTO pronto para publicar no tópico. */
+    /**
+     * UC020 – persiste a mensagem e devolve o DTO pronto para publicar no tópico.
+     */
     @Transactional
     public MensagemInternaDto processarMensagem(MensagemInternaForm payload, Long idUsuario) {
         this.verificarUsuariosValidos(idUsuario, payload.getIdDestinatario());

@@ -91,7 +91,7 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
     public void desativarPerfil(Long idUsuario) {
         log.info("[DESATIVAR PERFIL] - Iniciando processo de desativar perfil de usuário");
         UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
-        log.info("Usuário encontrado - " + usuario.getNome() + " - " + usuario.getCpf());
+        log.info("Usuário encontrado - {} - {}", usuario.getNome(), usuario.getCpf());
         switch (usuario.getPermissao()) {
             case TipoUsuario.C -> this.desativarPerfilCliente(usuario);
             case TipoUsuario.A -> this.desativarPerfilCliente(usuario);
@@ -148,8 +148,8 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
         return new RankingFuncionarioDto(
                 classificacao,
                 pontuacao.get(),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst()),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast())
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast()),
+                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst())
         );
     }
 
@@ -186,7 +186,7 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
             throw new RuntimeException("O tipo de usuário não tem acesso a avaliações!");
         List<AvaliacaoModel> avaliacoes;
         if (funcionario.getPermissao().equals(TipoUsuario.A))
-            avaliacoes = this.atendimentoRepository.findAllByAtendente_Id(idUsuario).stream()
+            avaliacoes = this.atendimentoRepository.findAllByAtendente_IdAndAvaliacaoIsNotNull(idUsuario).stream()
                     .map(AtendimentoModel::getAvaliacao).toList();
         else
             avaliacoes = this.consultaRepository.findAllByVeterinario_IdAndAvaliacaoIsNotNull(idUsuario).stream()
