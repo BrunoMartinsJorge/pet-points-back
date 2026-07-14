@@ -52,6 +52,7 @@ public class ChatAtendimentoService {
         long qtdAndamento = atendimentos.stream().filter(atendimento -> atendimento.getStatus().equals(StatusAtendimentoEnum.EM_ANDAMENTO)).count();
         long qtdFinalizados = atendimentos.stream().filter(atendimento -> atendimento.getStatus().equals(StatusAtendimentoEnum.FINALIZADO)).count();
         List<AtendimentoModel> atendimentosAvaliados = atendimentos.stream().filter(atendimento -> atendimento.getAvaliacao() != null).toList();
+        if (atendimentosAvaliados.isEmpty()) return new CardsAtendimentoAtendenteDto(qtdAndamento, qtdFinalizados, BigDecimal.ZERO);
         int somatoria = atendimentosAvaliados.stream().map(atendimento -> atendimento.getAvaliacao().getPontuacao()).reduce(0, Integer::sum);
         BigDecimal pontuacao = BigDecimal.valueOf(somatoria / atendimentosAvaliados.size())
                 .setScale(2, RoundingMode.HALF_UP).max(BigDecimal.valueOf(5)).min(BigDecimal.valueOf(5));
