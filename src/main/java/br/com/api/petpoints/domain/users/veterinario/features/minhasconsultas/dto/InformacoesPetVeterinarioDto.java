@@ -3,33 +3,32 @@ package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.d
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.TipoAnimalEnum;
 import br.com.api.petpoints.shared.models.PetModel;
-import br.com.api.petpoints.shared.utils.LocalDateUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PetConsultaDto {
+public class InformacoesPetVeterinarioDto {
 
-    private Long id;
     private String nome;
+    private GeneroEnum genero;
     private TipoAnimalEnum tipo;
     private String raca;
-    private GeneroEnum genero;
-    private String dataNascimento;
-    private String observacoes;
+    private String idade;
+    private String nomeTutor;
 
-    public PetConsultaDto(PetModel pet) {
-        this.id = pet.getId();
+    public InformacoesPetVeterinarioDto(PetModel pet) {
         this.nome = pet.getNome();
+        this.genero = pet.getGenero();
         this.tipo = pet.getTipo();
         this.raca = pet.getRaca();
-        this.genero = pet.getGenero();
-        this.dataNascimento = LocalDateUtils.converterLocalDateParaPtBr(pet.getDataNascimento());
-        this.observacoes = pet.getObservacoes();
+        this.idade = LocalDateTime.now().getYear() - pet.getDataNascimento().getYear() + " Anos.";
+        this.nomeTutor = pet.getTutor().getNome();
     }
 }

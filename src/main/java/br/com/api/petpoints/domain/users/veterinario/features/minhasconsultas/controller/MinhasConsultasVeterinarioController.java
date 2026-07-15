@@ -1,7 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.controller;
 
 import br.com.api.petpoints.core.token.TokenModel;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service.MinhasConsultaVeterinarioServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +18,13 @@ public class MinhasConsultasVeterinarioController {
     private final MinhasConsultaVeterinarioServiceImpl minhasConsultaVeterinarioService;
 
     @GetMapping
-    public ResponseEntity<List<ConsultaDto>> listarConsultasPorVeterinario(HttpServletRequest request) {
+    public ResponseEntity<List<ConsultaVeterinarioDto>> listarConsultasPorVeterinario(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultas(token.getIdUsuario()));
     }
 
     @GetMapping("/hoje")
-    public ResponseEntity<List<ConsultaDto>> listarConsultasDoDia(HttpServletRequest request) {
+    public ResponseEntity<List<ConsultaVeterinarioDto>> listarConsultasDoDia(HttpServletRequest request) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
         return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultasDoDia(token.getIdUsuario()));
     }

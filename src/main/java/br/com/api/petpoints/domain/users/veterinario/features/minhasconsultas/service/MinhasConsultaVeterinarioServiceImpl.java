@@ -1,7 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
@@ -26,15 +26,15 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final LogsServiceImpl logsService;
 
     @Override
-    public List<ConsultaDto> listarMinhasConsultas(Long idUsuario) {
+    public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
         List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllByVeterinario_Id(idUsuario);
-        return ConsultaDto.convert(minhasConsultas);
+        return ConsultaVeterinarioDto.convert(minhasConsultas);
     }
 
     @Override
-    public List<ConsultaDto> listarMinhasConsultasDoDia(Long idUsuario) {
+    public List<ConsultaVeterinarioDto> listarMinhasConsultasDoDia(Long idUsuario) {
         List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream().filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now())).toList();
-        return ConsultaDto.convert(minhasConsultas);
+        return ConsultaVeterinarioDto.convert(minhasConsultas);
     }
 
     private ConsultaModel getConsultaPorId(Long idConsulta) {
