@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
@@ -33,8 +34,20 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultasDoDia(Long idUsuario) {
-        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream().filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now())).toList();
+        List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
+                .filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now())).toList();
         return ConsultaVeterinarioDto.convert(minhasConsultas);
+    }
+
+    @Override
+    public ConsultaAtualDto buscarConsultaAtualVeterinario(Long idUsuario) {
+        List<ConsultaModel> consultasDoDia = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
+                .filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now()) && consulta.getStatus().equals(StatusConsultaEnum.INICIADO)).toList();
+        if (consultasDoDia.isEmpty())
+            return new ConsultaAtualDto();
+        if (consultasDoDia.size() > 1)
+            throw new RuntimeException("Duas consultas não podem estar iniciadas ao mesmo tempo!");
+        return new ConsultaAtualDto(consultasDoDia.getFirst());
     }
 
     private ConsultaModel getConsultaPorId(Long idConsulta) {

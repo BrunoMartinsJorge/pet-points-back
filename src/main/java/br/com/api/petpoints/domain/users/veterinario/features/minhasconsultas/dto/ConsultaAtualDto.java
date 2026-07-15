@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto;
 
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
+import br.com.api.petpoints.shared.models.ConsultaModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,4 +25,15 @@ public class ConsultaAtualDto {
     private String observacoes;
     private LocalDateTime iniciadoEm;
     private LocalDateTime finalizadoEm;
+
+    public ConsultaAtualDto(ConsultaModel consulta) {
+        this.id = consulta.getId();
+        this.status = consulta.getStatus();
+        this.pet = new InformacoesPetVeterinarioDto(consulta.getPet());
+        this.imagemCliente = consulta.getSolicitante().getImagem();
+        this.tipo = consulta.getTipoConsulta().getNome();
+        this.observacoes = consulta.getObservacoes();
+        this.iniciadoEm = consulta.getIniciadoEm();
+        this.finalizadoEm = consulta.getFinalizadoEm();
+    }
 }

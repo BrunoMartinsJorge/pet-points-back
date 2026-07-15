@@ -37,7 +37,7 @@ public class ConsultasAtendenteDto {
         this.atendente = consulta.getAtendente() != null ? consulta.getAtendente().getNome() : "Consulta Não Deferida!";
         this.veterinario = consulta.getVeterinario().getNome();
         this.pet = consulta.getPet().getNome();
-        this.tipoConsulta = consulta.getTipoConsulta().getDescricao();
+        this.tipoConsulta = consulta.getTipoConsulta().getNome();
         this.solicitadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getSolicitadoEm());
         this.deferidoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getDeferidoEm());
         this.motivoIndeferimento = consulta.getMotivoIndeferimento();

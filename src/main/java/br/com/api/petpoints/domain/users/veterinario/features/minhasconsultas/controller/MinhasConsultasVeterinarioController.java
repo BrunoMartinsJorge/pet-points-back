@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.controller;
 
 import br.com.api.petpoints.core.token.TokenModel;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service.MinhasConsultaVeterinarioServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,29 +18,34 @@ public class MinhasConsultasVeterinarioController {
 
     private final MinhasConsultaVeterinarioServiceImpl minhasConsultaVeterinarioService;
 
+    private Long getIdUsuario(HttpServletRequest request) {
+        return new TokenModel(request.getHeader("Authorization")).getIdUsuario();
+    }
+
     @GetMapping
     public ResponseEntity<List<ConsultaVeterinarioDto>> listarConsultasPorVeterinario(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultas(token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultas(this.getIdUsuario(request)));
     }
 
     @GetMapping("/hoje")
     public ResponseEntity<List<ConsultaVeterinarioDto>> listarConsultasDoDia(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultasDoDia(token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarMinhasConsultasDoDia(this.getIdUsuario(request)));
+    }
+
+    @GetMapping("/consulta-atual")
+    public ResponseEntity<ConsultaAtualDto> buscarConsultaAtualVeterinario(HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.buscarConsultaAtualVeterinario(this.getIdUsuario(request)));
     }
 
     @PutMapping("/iniciar/{id}")
     public ResponseEntity<Void> iniciarConsulta(HttpServletRequest request, @PathVariable Long id) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultaVeterinarioService.iniciarConsulta(token.getIdUsuario(), id);
+        this.minhasConsultaVeterinarioService.iniciarConsulta(this.getIdUsuario(request), id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/finalizar/{id}")
     public ResponseEntity<Void> finalizarConsulta(HttpServletRequest request, @PathVariable Long id, @RequestBody String resumo) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultaVeterinarioService.finalizarConsulta(token.getIdUsuario(), id, resumo);
+        this.minhasConsultaVeterinarioService.finalizarConsulta(this.getIdUsuario(request), id, resumo);
         return ResponseEntity.ok().build();
     }
 }
