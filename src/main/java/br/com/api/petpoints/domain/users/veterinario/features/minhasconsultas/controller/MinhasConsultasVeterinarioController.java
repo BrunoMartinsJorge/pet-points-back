@@ -3,6 +3,7 @@ package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.c
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service.MinhasConsultaVeterinarioServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,11 @@ public class MinhasConsultasVeterinarioController {
     @GetMapping("/consulta-atual")
     public ResponseEntity<ConsultaAtualDto> buscarConsultaAtualVeterinario(HttpServletRequest request) {
         return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.buscarConsultaAtualVeterinario(this.getIdUsuario(request)));
+    }
+
+    @GetMapping("/selecionar-consulta/{idConsulta}")
+    public ResponseEntity<InformacoesConsultaSelecionadaDto> buscarInformacoesConsulta(@PathVariable Long idConsulta, HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.buscarInformacoesConsulta(idConsulta, this.getIdUsuario(request)));
     }
 
     @PutMapping("/iniciar/{id}")

@@ -3,6 +3,7 @@ package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.s
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
@@ -42,12 +43,20 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     @Override
     public ConsultaAtualDto buscarConsultaAtualVeterinario(Long idUsuario) {
         List<ConsultaModel> consultasDoDia = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
-                .filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now()) && consulta.getStatus().equals(StatusConsultaEnum.INICIADO)).toList();
+                .filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.INICIADO)).toList();
         if (consultasDoDia.isEmpty())
             return new ConsultaAtualDto();
         if (consultasDoDia.size() > 1)
             throw new RuntimeException("Duas consultas não podem estar iniciadas ao mesmo tempo!");
         return new ConsultaAtualDto(consultasDoDia.getFirst());
+    }
+
+    @Override
+    public InformacoesConsultaSelecionadaDto buscarInformacoesConsulta(Long idConsulta, Long idUsuario) {
+        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        if (!consulta.getVeterinario().getId().equals(idUsuario))
+            throw new IllegalArgumentException("Você não é o veterinário responsável por esta consulta!");
+        return new InformacoesConsultaSelecionadaDto(consulta);
     }
 
     private ConsultaModel getConsultaPorId(Long idConsulta) {
