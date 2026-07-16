@@ -35,7 +35,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultasDoDia(Long idUsuario) {
         List<ConsultaModel> minhasConsultas = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
-                .filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now())).toList();
+                .filter(consulta -> consulta.getDataConsulta().toLocalDate().equals(LocalDate.now()) && consulta.getStatus().equals(StatusConsultaEnum.APROVADA)).toList();
         return ConsultaVeterinarioDto.convert(minhasConsultas);
     }
 
