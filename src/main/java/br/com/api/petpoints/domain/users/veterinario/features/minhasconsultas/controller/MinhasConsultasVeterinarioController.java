@@ -49,7 +49,7 @@ public class MinhasConsultasVeterinarioController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/finalizar/{id}")
+    @PutMapping("/finalizar/{id}")
     public ResponseEntity<Void> finalizarConsulta(HttpServletRequest request, @PathVariable Long id, @RequestBody String resumo) {
         this.minhasConsultaVeterinarioService.finalizarConsulta(this.getIdUsuario(request), id, resumo);
         return ResponseEntity.ok().build();

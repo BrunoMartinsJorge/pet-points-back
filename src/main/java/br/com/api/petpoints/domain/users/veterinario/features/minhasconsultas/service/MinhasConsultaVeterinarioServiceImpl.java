@@ -6,12 +6,17 @@ import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dt
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
+import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
+import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
+import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +31,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final UsuarioRepository usuarioRepository;
     private final ConsultaRepository consultaRepository;
     private final LogsServiceImpl logsService;
+    private final NotificacoesController notificacoesController;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -68,17 +74,20 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     }
 
     @Override
+    @Transactional
     public void iniciarConsulta(Long idUsuario, Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.APROVADA)
             throw new RuntimeException("A consulta não pode ser iniciada com o estado: " + consulta.getStatus().getDescricao() + "!");
         consulta.setStatus(StatusConsultaEnum.INICIADO);
         consulta.setIniciadoEm(LocalDateTime.now());
-        this.consultaRepository.save(consulta);
+        consulta = this.consultaRepository.save(consulta);
         this.logsService.registrarLog(this.getUsuarioPorId(idUsuario), TipoLogEnum.CONSULTA_INICIADA);
+        this.enviarNotificacaoCliente(consulta);
     }
 
     @Override
+    @Transactional
     public void finalizarConsulta(Long idUsuario, Long idConsulta, String resumo) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.INICIADO)
@@ -86,8 +95,48 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setFinalizadoEm(LocalDateTime.now());
         consulta.setResumoConsulta(resumo);
-        this.consultaRepository.save(consulta);
+        consulta = this.consultaRepository.save(consulta);
         this.logsService.registrarLog(this.getUsuarioPorId(idUsuario), TipoLogEnum.CONSULTA_FINALIZADA);
+        this.enviarNotificacaoCliente(consulta);
+    }
+
+    private void enviarNotificacaoCliente(ConsultaModel consulta) {
+        if (!consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && !consulta.getStatus().equals(StatusConsultaEnum.INICIADO))
+            return;
+        String status = consulta.getStatus().equals(StatusConsultaEnum.INICIADO)
+                ? "iniciada"
+                : "finalizada";
+
+        String complemento = consulta.getStatus().equals(StatusConsultaEnum.INICIADO)
+                ? "Acompanhe o andamento da consulta pelo sistema."
+                : "Caso não esteja na clínica, compareça para retirar seu pet.";
+
+        String conteudo = String.format(
+                "Olá, %s! Sua consulta com o(a) Dr(a). %s foi %s às %s. %s Obrigado por utilizar a Pet Points.",
+                consulta.getSolicitante().getNome(),
+                consulta.getVeterinario().getNome(),
+                status,
+                LocalDateTimeUtils.converterLocalDateTimeParaPtBr(
+                        consulta.getStatus().equals(StatusConsultaEnum.INICIADO)
+                                ? consulta.getIniciadoEm()
+                                : consulta.getFinalizadoEm()
+                ),
+                complemento
+        );
+
+        if (conteudo.length() > 250) {
+            conteudo = conteudo.substring(0, 250);
+        }
+
+        NovaNotificacaoForm form = new NovaNotificacaoForm(
+                consulta.getSolicitante().getId(),
+                consulta.getStatus().equals(StatusConsultaEnum.INICIADO)
+                        ? "Consulta Iniciada!"
+                        : "Consulta Finalizada!",
+                conteudo,
+                TiposNotificacoesEnum.CONSULTA
+        );
+        this.notificacoesController.enviarNotificacao(form);
     }
 
     @Override
