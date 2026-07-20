@@ -161,15 +161,8 @@ public class MeusPetsClienteServiceImpl implements MeusPetsClienteService {
     }
 
     @Override
-    public String gerarCarteirinha(Long idPet, Model model) {
-        CarteirinhaDto pet = new CarteirinhaDto(this.getPetPorId(idPet));
-        Context context = new Context();
-        context.setVariable("pet", pet);
-        String base64 = Base64.getEncoder()
-                .encodeToString(this.buscarImagemPet(idPet).getConteudo());
-
-        context.setVariable("imagemBase64", base64);
-        return templateEngine.process("carteirinha", context);
+    public CarteirinhaDto gerarCarteirinha(Long idPet, Model model) {
+        return new CarteirinhaDto(this.getPetPorId(idPet));
     }
 
     @Override

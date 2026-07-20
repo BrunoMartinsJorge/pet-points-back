@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -37,6 +38,32 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final ArquivoRepository arquivoRepository;
     private final ComprovanteRepository comprovanteRepository;
     private final AvaliacaoRepository avaliacaoRepository;
+
+    private UsuarioModel getUsuarioPorId(Long idUsuario) {
+        return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
+    }
+
+    private TipoConsultaModel getTipoConsultaPorId(Long idTipoConsulta) {
+        return this.tipoConsultaRepository.findById(idTipoConsulta).orElseThrow(() -> new ObjectNotFoundException("Tipo de Consulta com ID: " + idTipoConsulta));
+    }
+
+    private PetModel getPetPorId(Long idPet) {
+        return this.petRepository.findById(idPet).orElseThrow(() -> new ObjectNotFoundException("Pet com ID: " + idPet + " não encontrado!"));
+    }
+
+    private ConsultaModel getConsultaPorId(Long idConsulta) {
+        return this.consultaRepository.findById(idConsulta).orElseThrow(() -> new ObjectNotFoundException("Consulta com ID: " + idConsulta + " não encontrada!"));
+    }
+
+    @Override
+    public InformacoesCardsConsultasClienteDto gerarInformacoesCards(Long idUsuario) {
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
+        if (consultas.isEmpty()) return new InformacoesCardsConsultasClienteDto(0, 0, 0);
+        long finalizadas = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO)).count();
+        long pendentes = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.PENDENTE)).count();
+        long indeferidasCanceladas = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.CANCELADO) || consulta.getStatus().equals(StatusConsultaEnum.REPROVADA)).count();
+        return new InformacoesCardsConsultasClienteDto(finalizadas, pendentes, indeferidasCanceladas);
+    }
 
     @Override
     public List<MinhasConsultasDto> listarConsultasAprovadas(Long idUsuario) {
@@ -59,25 +86,27 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     }
 
     @Override
+    public MinhasConsultasDto buscarProximaConsulta(Long idUsuario) {
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.APROVADA)
+                .stream().filter(consulta -> consulta.getDataConsulta().isAfter(LocalDateTime.now())).sorted(Comparator.comparing(ConsultaModel::getDataConsulta)).toList();
+        if (consultas.isEmpty())
+            return null;
+        return new MinhasConsultasDto(consultas.getFirst());
+    }
+
+    @Override
+    public MinhasConsultasDto buscarConsultaAtual(Long idUsuario) {
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.INICIADO)
+                .stream().sorted(Comparator.comparing(ConsultaModel::getDataConsulta)).toList();
+        if (consultas.isEmpty())
+            return null;
+        return new MinhasConsultasDto(consultas.getFirst());
+    }
+
+    @Override
     public DetalhesConsultaSelecionadaDto buscarDetalhesConsulta(Long idConsulta) {
         ConsultaModel consulta = this.consultaRepository.findById(idConsulta).orElseThrow(() -> new ObjectNotFoundException("Consulta com ID: " + idConsulta + " não encontrada!"));
         return new DetalhesConsultaSelecionadaDto(consulta);
-    }
-
-    private UsuarioModel getUsuarioPorId(Long idUsuario) {
-        return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
-    }
-
-    private TipoConsultaModel getTipoConsultaPorId(Long idTipoConsulta) {
-        return this.tipoConsultaRepository.findById(idTipoConsulta).orElseThrow(() -> new ObjectNotFoundException("Tipo de Consulta com ID: " + idTipoConsulta));
-    }
-
-    private PetModel getPetPorId(Long idPet) {
-        return this.petRepository.findById(idPet).orElseThrow(() -> new ObjectNotFoundException("Pet com ID: " + idPet + " não encontrado!"));
-    }
-
-    private ConsultaModel getConsultaPorId(Long idConsulta) {
-        return this.consultaRepository.findById(idConsulta).orElseThrow(() -> new ObjectNotFoundException("Consulta com ID: " + idConsulta + " não encontrada!"));
     }
 
     @Override

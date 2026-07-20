@@ -8,6 +8,7 @@ import br.com.api.petpoints.domain.users.cliente.features.meuspets.forms.EditarP
 import br.com.api.petpoints.domain.users.cliente.features.meuspets.forms.NovoPetForm;
 import br.com.api.petpoints.domain.users.cliente.features.meuspets.services.MeusPetsClienteServiceImpl;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
+import br.com.api.petpoints.shared.dto.CarteirinhaDto;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.TipoAnimalEnum;
 import br.com.api.petpoints.shared.models.ArquivosModel;
@@ -90,10 +91,9 @@ public class MeusPetsClienteController {
                 .body(arquivo.getConteudo());
     }
 
-    @GetMapping(value = "/carteirinha/{idPet}", produces = MediaType.TEXT_HTML_VALUE)
-    @ResponseBody
-    public String gerarCarteirinhaDePet(@PathVariable Long idPet, Model model) {
-        return this.meusPetsClienteService.gerarCarteirinha(idPet, model);
+    @GetMapping(value = "/carteirinha/{idPet}")
+    public ResponseEntity<CarteirinhaDto> gerarCarteirinhaDePet(@PathVariable Long idPet, Model model) {
+        return ResponseEntity.ok().body(this.meusPetsClienteService.gerarCarteirinha(idPet, model));
     }
 
     @GetMapping("/baixar-carteirinha/{idPet}")

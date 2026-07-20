@@ -23,22 +23,38 @@ public class MinhasConsultasClienteController {
 
     private final MinhasConsultasClienteServiceImpl minhasConsultasClienteServiceImpl;
 
+    private Long idUsuario(HttpServletRequest request) {
+        return new TokenModel(request.getHeader("Authorization")).getIdUsuario();
+    }
+
+    @GetMapping("/cards")
+    public ResponseEntity<InformacoesCardsConsultasClienteDto> gerarInformacoesCardsConsultasCliente(HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.gerarInformacoesCards(this.idUsuario(request)));
+    }
+
     @GetMapping("/consultas-confirmadas")
     public ResponseEntity<List<MinhasConsultasDto>> listarConsultasConfirmadasOuIniciadasDoCliente(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasAprovadas(token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasAprovadas(this.idUsuario(request)));
     }
 
     @GetMapping("/consultas-pendentes")
     public ResponseEntity<List<MinhasConsultasDto>> listarConsultasPendentesDoCliente(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasPendentes(token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.listarConsultasPendentes(this.idUsuario(request)));
+    }
+
+    @GetMapping("/proxima-consulta")
+    public ResponseEntity<MinhasConsultasDto> buscarProximaConsultaCliente(HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarProximaConsulta(this.idUsuario(request)));
+    }
+
+    @GetMapping("/consulta-atual")
+    public ResponseEntity<MinhasConsultasDto> buscarConsultaAtualCliente(HttpServletRequest request) {
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarConsultaAtual(this.idUsuario(request)));
     }
 
     @GetMapping
     public ResponseEntity<List<MinhasConsultasDto>> listarMinhasConsultas(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok(this.minhasConsultasClienteServiceImpl.listarMinhasConsultas(token.getIdUsuario()));
+        return ResponseEntity.ok(this.minhasConsultasClienteServiceImpl.listarMinhasConsultas(this.idUsuario(request)));
     }
 
     @GetMapping("/detalhes/{idConsulta}")
@@ -63,14 +79,12 @@ public class MinhasConsultasClienteController {
 
     @GetMapping("/pets")
     public ResponseEntity<List<OpcoesPetConsultasDto>> buscarPetsClienteConsulta(HttpServletRequest request) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarPetsConsulta(token.getIdUsuario()));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarPetsConsulta(this.idUsuario(request)));
     }
 
     @PostMapping("/solicitar")
     public ResponseEntity<Void> solicitarMinhasConsulta(HttpServletRequest request, @RequestBody @Valid SolicitacaoConsultaForm form) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultasClienteServiceImpl.solicitarNovaConsulta(token.getIdUsuario(), form);
+        this.minhasConsultasClienteServiceImpl.solicitarNovaConsulta(this.idUsuario(request), form);
         return ResponseEntity.ok().build();
     }
 
@@ -81,8 +95,7 @@ public class MinhasConsultasClienteController {
 
     @PutMapping("/cancelar-consulta")
     public ResponseEntity<?> cancelarConsulta(HttpServletRequest request, @RequestBody @Valid CancelarConsultaForm form) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultasClienteServiceImpl.cancelarConsulta(token.getIdUsuario(), form);
+        this.minhasConsultasClienteServiceImpl.cancelarConsulta(this.idUsuario(request), form);
         return ResponseEntity.ok().build();
     }
 
@@ -93,8 +106,7 @@ public class MinhasConsultasClienteController {
 
     @PostMapping("/registrar-comprovante/{idConsulta}")
     public ResponseEntity<Void> registrarComprovanteConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestParam MultipartFile arquivo) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultasClienteServiceImpl.registrarComprovante(idConsulta, token.getIdUsuario(), arquivo);
+        this.minhasConsultasClienteServiceImpl.registrarComprovante(idConsulta, this.idUsuario(request), arquivo);
         return ResponseEntity.ok().build();
     }
 
@@ -106,14 +118,12 @@ public class MinhasConsultasClienteController {
 
     @GetMapping("/avaliacao-consulta/{idConsulta}")
     public ResponseEntity<AvaliacaoConsultaDto> buscarAvaliacaoPorConsulta(HttpServletRequest request, @PathVariable Long idConsulta) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarAvaliacaoPorConsulta(token.getIdUsuario(), idConsulta));
+        return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarAvaliacaoPorConsulta(this.idUsuario(request), idConsulta));
     }
 
     @PostMapping("/avaliar-consulta/{idConsulta}")
     public ResponseEntity<Void> enviarAvaliacaoConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody AvaliacaoForm form) {
-        TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.minhasConsultasClienteServiceImpl.avaliarConsulta(token.getIdUsuario(), idConsulta, form);
+        this.minhasConsultasClienteServiceImpl.avaliarConsulta(this.idUsuario(request), idConsulta, form);
         return ResponseEntity.ok().build();
     }
 }

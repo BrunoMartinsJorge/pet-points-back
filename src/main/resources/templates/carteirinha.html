@@ -1,187 +1,336 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-br">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
 <head>
     <meta charset="UTF-8"/>
-
     <style>
         * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
         body {
-            background: #ffffff;
-            padding: 20px;
+            background: #f0f2f2;
+            padding: 24px;
         }
+
+        /* Ícones Font Awesome (a fonte precisa estar registrada no builder
+           via .useFont(..., "Font Awesome 6 Free") com peso 900). */
+        .fa, .fas {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-style: normal;
+        }
+        .fa-paw:before { content: "\f1b0"; }
+        .fa-venus:before { content: "\f221"; }
+        .fa-mars:before { content: "\f222"; }
+        .fa-dog:before { content: "\f6d3"; }
+        .fa-cat:before { content: "\f6be"; }
+        .fa-fish:before { content: "\f578"; }
+        .fa-user:before { content: "\f007"; }
+        .fa-phone:before { content: "\f095"; }
+        .fa-envelope:before { content: "\f0e0"; }
+        .fa-id-card:before { content: "\f2c2"; }
+        .fa-check-circle:before { content: "\f058"; }
 
         .carteirinha {
-            width: 420px;
-            height: 520px;
-            border: 1px solid #ddd;
-        }
-
-        .lateral {
-            width: 40px;
-            background-color: #0C6369;
-            color: #fff;
-            text-align: center;
-            vertical-align: middle;
-            font-weight: bold;
-            font-size: 12px;
-            letter-spacing: 2px;
-        }
-
-        .titulo-rotacionado {
-            writing-mode: vertical-rl;
-        }
-
-        .pet-info {
-            padding: 10px;
-            background: #fafafa;
-        }
-
-        .pet-foto {
-            text-align: center;
-            padding: 10px;
-            background: #e9eef0;
-        }
-
-        .pet-foto img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-
-        .infos {
-            margin-top: 10px;
-            border: 1px solid #ddd;
-            background: #fff;
-        }
-
-        .section-title {
+            width: 400px;
             background: #ffffff;
-            color: #0C6369;
-            font-weight: bold;
-            font-size: 11px;
-            padding: 4px;
-            border-bottom: 1px solid #ddd;
+            border: 1px solid #e6e6e6;
+            border-radius: 18px;
         }
 
-        .data {
+        /* Cabeçalho */
+        .topo {
+            background: #10b981;
+            border-top-left-radius: 18px;
+            border-top-right-radius: 18px;
+        }
+        .topo-tbl {
             width: 100%;
-            border-bottom: 1px dashed #eee;
+            border-collapse: collapse;
         }
-
-        .data td {
-            padding: 4px 6px;
-            font-size: 13px;
+        .topo-tbl td {
+            padding: 14px 18px;
+            vertical-align: middle;
         }
-
-        .label {
+        .brand {
+            color: #04342c;
             font-weight: bold;
-            color: #333;
-            width: 40%;
+            font-size: 14px;
+        }
+        .numero-cell {
+            text-align: right;
+        }
+        .numero {
+            display: inline-block;
+            color: #04342c;
+            font-size: 12px;
+            font-weight: bold;
+            background: #0e9d71;
+            padding: 3px 10px;
+            border-radius: 20px;
         }
 
-        .value {
-            color: #666;
+        /* Pet */
+        .pet-tbl {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .pet-tbl td {
+            vertical-align: middle;
+        }
+        .cel-avatar {
+            width: 76px;
+            padding: 18px 0 18px 18px;
+        }
+        .cel-pet-info {
+            padding: 18px;
+        }
+        .avatar {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: #e6f7ef;
+            border: 2px solid #10b981;
+            color: #0e9f6e;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 76px;
+        }
+        .avatar-img {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            border: 2px solid #10b981;
+        }
+        .nome {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .pill {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid #e6e6e6;
+            color: #6b7280;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+        .pill-fem {
+            background: #d4537e;
+            color: #ffffff;
+            border-color: #d4537e;
+        }
+        .pill-masc {
+            background: #378add;
+            color: #ffffff;
+            border-color: #378add;
+        }
+        .pill-tipo {
+            color: #0e9f6e;
+            border-color: #0e9f6e;
+        }
+
+        /* Seção do tutor */
+        .secao {
+            padding: 12px 18px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6b7280;
+            border-top: 1px solid #e6e6e6;
+        }
+        .tutor-tbl {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tutor-tbl td {
+            vertical-align: middle;
+        }
+        .cel-tutor-avatar {
+            width: 44px;
+            padding: 8px 0 6px 18px;
+        }
+        .cel-tutor-info {
+            padding: 8px 18px 6px 12px;
+        }
+        .tutor-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #f4f5f5;
+            border: 1px solid #e6e6e6;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 44px;
+        }
+        .tutor-nome {
+            font-weight: bold;
+            font-size: 15px;
+            color: #1f2937;
+        }
+        .tutor-genero {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* Contatos */
+        .contatos {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .contatos td {
+            padding: 8px 0;
+            font-size: 14px;
+            border-top: 1px solid #e6e6e6;
+            vertical-align: middle;
+        }
+        .contatos tr.primeira td {
+            border-top: none;
+        }
+        .cel-icone {
+            width: 24px;
+            padding-left: 18px;
+            color: #6b7280;
+            font-size: 16px;
+        }
+        .cel-rotulo {
+            width: 64px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .cel-valor {
+            color: #1f2937;
+            padding-right: 18px;
+        }
+
+        /* Rodapé */
+        .rodape {
+            background: #f4f5f5;
+            border-top: 1px solid #e6e6e6;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+        }
+        .rodape-tbl {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .rodape-tbl td {
+            padding: 10px 18px;
+            font-size: 11px;
+            color: #6b7280;
+            vertical-align: middle;
+        }
+        .rodape-tbl .status {
+            text-align: right;
+        }
+        .rodape-tbl .status i {
+            color: #0e9f6e;
         }
     </style>
-
 </head>
-
 <body>
 
-<table class="carteirinha" cellspacing="0" cellpadding="0">
+<div class="carteirinha"
+     th:with="genFem=${pet.genero != null and #strings.startsWith(#strings.toLowerCase(pet.genero), 'f')},
+              tipoIcone=${#strings.containsIgnoreCase(pet.tipo, 'gato') or #strings.containsIgnoreCase(pet.tipo, 'cat') ? 'fa-cat'
+                        : (#strings.containsIgnoreCase(pet.tipo, 'peixe') or #strings.containsIgnoreCase(pet.tipo, 'fish') ? 'fa-fish'
+                        : (#strings.containsIgnoreCase(pet.tipo, 'cach') or #strings.containsIgnoreCase(pet.tipo, 'cão') or #strings.containsIgnoreCase(pet.tipo, 'cao') or #strings.containsIgnoreCase(pet.tipo, 'dog') ? 'fa-dog' : 'fa-paw'))},
+              iniciaisPet=${pet.nome != null and #strings.length(pet.nome) >= 2 ? #strings.substring(pet.nome, 0, 2) : pet.nome},
+              iniciaisTutor=${pet.nomeTutor != null and #strings.length(pet.nomeTutor) >= 2 ? #strings.substring(pet.nomeTutor, 0, 2) : pet.nomeTutor},
+              cpfExibicao=${pet.cpfTutor != null and #strings.length(pet.cpfTutor) == 14
+                          ? '•••' + #strings.substring(pet.cpfTutor, 3, #strings.length(pet.cpfTutor) - 2) + '••'
+                          : pet.cpfTutor}">
 
-    <tr>
-        <!-- LATERAL -->
-        <td class="lateral">
-            <span class="titulo-rotacionado">
-                PET POINTS
-            </span>
-        </td>
+    <!-- CABEÇALHO -->
+    <div class="topo">
+        <table class="topo-tbl">
+            <tr>
+                <td class="brand"><i class="fa fas fa-paw"></i> Carteirinha do Pet</td>
+                <td class="numero-cell">
+                    <span class="numero">Nº <span th:text="${#numbers.formatInteger(pet.id, 6)}">000124</span></span>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-        <!-- CONTEÚDO -->
-        <td class="pet-info">
-
-            <!-- FOTO -->
-            <div class="pet-foto">
-                <img th:if="${imagemBase64 != null}"
+    <!-- PET -->
+    <table class="pet-tbl">
+        <tr>
+            <td class="cel-avatar">
+                <img th:if="${imagemBase64 != null}" class="avatar-img"
                      th:src="'data:image/jpeg;base64,' + ${imagemBase64}"
-                     alt="Foto do pet"/>
-                <span th:if="${imagemBase64 == null}">Sem imagem</span>
-            </div>
+                     th:alt="${pet.nome}"/>
+                <div th:if="${imagemBase64 == null}" class="avatar" th:text="${iniciaisPet}">Me</div>
+            </td>
+            <td class="cel-pet-info">
+                <div class="nome" th:text="${pet.nome}">Mel</div>
+                <div>
+                    <span class="pill" th:classappend="${genFem} ? 'pill-fem' : 'pill-masc'">
+                        <i class="fa fas" th:classappend="${genFem} ? 'fa-venus' : 'fa-mars'"></i>
+                        <span th:text="${pet.genero}">Feminino</span>
+                    </span>
+                    <span class="pill pill-tipo">
+                        <i class="fa fas" th:classappend="${tipoIcone}"></i>
+                        <span th:text="${pet.tipo}">Cachorro</span>
+                    </span>
+                    <span class="pill" th:text="${pet.raca}">Shitzu</span>
+                </div>
+            </td>
+        </tr>
+    </table>
 
-            <!-- PET -->
-            <table class="infos" width="100%" cellspacing="0" cellpadding="0">
+    <!-- TUTOR -->
+    <div class="secao"><i class="fa fas fa-user"></i> Tutor responsável</div>
+    <table class="tutor-tbl">
+        <tr>
+            <td class="cel-tutor-avatar">
+                <div class="tutor-avatar" th:text="${iniciaisTutor}">AR</div>
+            </td>
+            <td class="cel-tutor-info">
+                <div class="tutor-nome" th:text="${pet.nomeTutor}">Ana Rodrigues</div>
+                <div class="tutor-genero" th:text="${pet.generoTutor}">Feminino</div>
+            </td>
+        </tr>
+    </table>
 
-                <tr>
-                    <td class="section-title" colspan="2">PET</td>
-                </tr>
+    <!-- CONTATOS -->
+    <table class="contatos">
+        <tr class="primeira">
+            <td class="cel-icone"><i class="fa fas fa-phone"></i></td>
+            <td class="cel-rotulo">Telefone</td>
+            <td class="cel-valor" th:text="${pet.telefoneTutor}">(11) 98765-4321</td>
+        </tr>
+        <tr>
+            <td class="cel-icone"><i class="fa fas fa-envelope"></i></td>
+            <td class="cel-rotulo">E-mail</td>
+            <td class="cel-valor" th:text="${pet.emailTutor}">ana.rodrigues@email.com</td>
+        </tr>
+        <tr>
+            <td class="cel-icone"><i class="fa fas fa-id-card"></i></td>
+            <td class="cel-rotulo">CPF</td>
+            <td class="cel-valor" th:text="${cpfExibicao}">•••.456.789-••</td>
+        </tr>
+    </table>
 
-                <tr class="data">
-                    <td class="label">Nome</td>
-                    <td class="value" th:text="${pet.nome}"></td>
-                </tr>
+    <!-- RODAPÉ -->
+    <div class="rodape">
+        <table class="rodape-tbl">
+            <tr>
+                <td>ID do pet: <span th:text="${pet.id}">124</span></td>
+                <td class="status"><i class="fa fas fa-check-circle"></i> Cadastro ativo</td>
+            </tr>
+        </table>
+    </div>
 
-                <tr class="data">
-                    <td class="label">Gênero</td>
-                    <td class="value" th:text="${pet.genero}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Tipo</td>
-                    <td class="value" th:text="${pet.tipo}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Raça</td>
-                    <td class="value" th:text="${pet.raca}"></td>
-                </tr>
-
-            </table>
-
-            <!-- TUTOR -->
-            <table class="infos" width="100%" cellspacing="0" cellpadding="0" style="margin-top:10px;">
-
-                <tr>
-                    <td class="section-title" colspan="2">TUTOR</td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Nome</td>
-                    <td class="value" th:text="${pet.nomeTutor}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Gênero</td>
-                    <td class="value" th:text="${pet.generoTutor}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Telefone</td>
-                    <td class="value" th:text="${pet.telefoneTutor}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">Email</td>
-                    <td class="value" th:text="${pet.emailTutor}"></td>
-                </tr>
-
-                <tr class="data">
-                    <td class="label">CPF</td>
-                    <td class="value" th:text="${pet.cpfTutor}"></td>
-                </tr>
-
-            </table>
-
-        </td>
-    </tr>
-
-</table>
+</div>
 
 </body>
 </html>

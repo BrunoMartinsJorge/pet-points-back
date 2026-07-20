@@ -11,9 +11,12 @@ import java.util.List;
 
 public interface MinhasConsultasClienteService {
 
+    InformacoesCardsConsultasClienteDto gerarInformacoesCards(Long idUsuario);
     List<MinhasConsultasDto> listarConsultasAprovadas(Long idUsuario);
     List<MinhasConsultasDto> listarMinhasConsultas(Long idUsuario);
     List<MinhasConsultasDto> listarConsultasPendentes(Long idUsuario);
+    MinhasConsultasDto buscarProximaConsulta(Long idUsuario);
+    MinhasConsultasDto buscarConsultaAtual(Long idUsuario);
     DetalhesConsultaSelecionadaDto buscarDetalhesConsulta(Long idConsulta);
     void solicitarNovaConsulta(Long idUsuario, SolicitacaoConsultaForm form);
     void cancelarConsulta(Long idUsuario, CancelarConsultaForm form);
