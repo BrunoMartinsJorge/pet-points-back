@@ -3,16 +3,18 @@ package br.com.api.petpoints.domain.users.gerente.features.pets.controller;
 import br.com.api.petpoints.domain.users.gerente.features.pets.dto.*;
 import br.com.api.petpoints.domain.users.gerente.features.pets.form.RelatorioPetsClinicaForm;
 import br.com.api.petpoints.domain.users.gerente.features.pets.service.PetsClinicaServiceImpl;
+import br.com.api.petpoints.shared.dto.CarteirinhaDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/gerente/pets-clinica")
+@RequestMapping("/gerente-atendente/pets-clinica")
 @RequiredArgsConstructor
 public class PetsClinicaController {
 
@@ -26,6 +28,20 @@ public class PetsClinicaController {
     @GetMapping("/tutores")
     public ResponseEntity<List<TutorDto>> listarTutoresFiltros() {
         return ResponseEntity.ok().body(this.petsClinicaService.buscarTutorsClinica());
+    }
+
+    @GetMapping(value = "/carteirinha/{idPet}")
+    public ResponseEntity<CarteirinhaDto> gerarCarteirinhaDePet(@PathVariable Long idPet, Model model) {
+        return ResponseEntity.ok().body(this.petsClinicaService.gerarCarteirinha(idPet, model));
+    }
+
+    @GetMapping("/baixar-carteirinha/{idPet}")
+    public ResponseEntity<byte[]> baixarCarteirinha(@PathVariable Long idPet) {
+        byte[] pdf = this.petsClinicaService.baixarCarteirinha(idPet);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Carteirinha.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     @GetMapping("/detalhes-pet/{idPet}")

@@ -57,6 +57,7 @@ public class ConfigSecurity {
                         .requestMatchers("/estoquista/**").hasAuthority("RULE_REST_ESTOQUISTA")
 
                         .requestMatchers("/relatorios/**").hasAnyAuthority("RULE_REST_GERENTE")
+                        .requestMatchers("/gerente-atendente/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE")
 
                         .anyRequest().authenticated()
                 )
