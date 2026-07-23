@@ -118,13 +118,10 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
             avaliacoes = this.consultaRepository.findAllByVeterinario_IdAndAvaliacaoIsNotNull(idUsuario).stream()
                     .map(ConsultaModel::getAvaliacao).toList();
         if (avaliacoes.isEmpty())
-            return new RankingFuncionarioDto(null, 0, null, null);
-        List<AvaliacaoModel> ordenadas = avaliacoes.stream()
-                .sorted(Comparator.comparing(AvaliacaoModel::getPontuacao))
-                .toList();
+            return new RankingFuncionarioDto(null, 0);
         return funcionario.getPermissao().equals(TipoUsuario.A)
-                ? this.gerarAvaliacaoRankingAtendente(funcionario, ordenadas)
-                : this.gerarAvaliacaoRankingVeterinario(funcionario, ordenadas);
+                ? this.gerarAvaliacaoRankingAtendente(funcionario, avaliacoes)
+                : this.gerarAvaliacaoRankingVeterinario(funcionario, avaliacoes);
     }
 
     private RankingFuncionarioDto gerarAvaliacaoRankingAtendente(UsuarioModel atendente, List<AvaliacaoModel> minhasAvaliacoes) {
@@ -145,12 +142,7 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
         minhasAvaliacoes.forEach(avaliacao -> {
             pontuacao.addAndGet(avaliacao.getPontuacao());
         });
-        return new RankingFuncionarioDto(
-                classificacao,
-                pontuacao.get(),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast()),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst())
-        );
+        return new RankingFuncionarioDto(classificacao, pontuacao.get());
     }
 
     private RankingFuncionarioDto gerarAvaliacaoRankingVeterinario(UsuarioModel veterinario, List<AvaliacaoModel> minhasAvaliacoes) {
@@ -171,12 +163,7 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
         minhasAvaliacoes.forEach(avaliacao -> {
             pontuacao.addAndGet(avaliacao.getPontuacao());
         });
-        return new RankingFuncionarioDto(
-                classificacao,
-                pontuacao.get(),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getFirst()),
-                new AvaliacaoConsultaDto(minhasAvaliacoes.getLast())
-        );
+        return new RankingFuncionarioDto(classificacao, pontuacao.get());
     }
 
     @Override
