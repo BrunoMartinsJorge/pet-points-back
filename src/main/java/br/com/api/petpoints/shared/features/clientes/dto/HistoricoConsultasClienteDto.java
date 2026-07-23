@@ -1,4 +1,4 @@
-package br.com.api.petpoints.domain.users.gerente.features.clientes.dto;
+package br.com.api.petpoints.shared.features.clientes.dto;
 
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.models.ConsultaModel;
@@ -26,6 +26,7 @@ public class HistoricoConsultasClienteDto {
     private String veterinario;
     private String motivoIndeferimento;
     private String motivoCancelamento;
+    private String pet;
 
     public HistoricoConsultasClienteDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -38,6 +39,7 @@ public class HistoricoConsultasClienteDto {
         this.veterinario = consulta.getVeterinario().getNome();
         this.motivoIndeferimento = consulta.getMotivoIndeferimento();
         this.motivoCancelamento = consulta.getMotivoIndeferimento();
+        this.pet = consulta.getPet().getNome();
     }
 
     public static List<HistoricoConsultasClienteDto> convert(List<ConsultaModel> consultas) {
