@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 40px;
+        }
+
+        .header {
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #4CAF50;
+        }
+
+        h2 {
+            font-size: 15px;
+            color: #333;
+            margin: 30px 0 10px 0;
+        }
+
+        .info {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .cards {
+            width: 100%;
+            display: table;
+            table-layout: fixed;
+            border-spacing: 8px 0;
+        }
+
+        .card {
+            display: table-cell;
+            width: 20%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            vertical-align: top;
+        }
+
+        .card .label {
+            font-size: 10px;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .card .valor {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .card .sub {
+            font-size: 10px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .card.total .valor { color: #1976d2; }
+        .card.conclusao .valor { color: #2e7d32; }
+        .card.nota .valor { color: #f9a825; }
+        .card.risco .valor { color: #d32f2f; }
+        .card.destaque .valor { color: #2e7d32; }
+
+        .barra-linha {
+            margin-bottom: 10px;
+        }
+
+        .barra-legenda {
+            display: table;
+            width: 100%;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .barra-legenda .nome {
+            display: table-cell;
+            text-align: left;
+        }
+
+        .barra-legenda .valores {
+            display: table-cell;
+            text-align: right;
+            color: #666;
+        }
+
+        .barra-fundo {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 4px;
+            height: 12px;
+        }
+
+        .barra-preenchida {
+            background-color: #f9a825;
+            height: 12px;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: right;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Relatório de Desempenho de Veterinários</h1>
+    <h3 th:text="'Período: ' + ${periodo}"></h3>
+    <div class="info">
+        Gerado em: <span th:text="${dataGeracao}"></span>
+    </div>
+</div>
+
+<div class="cards">
+    <div class="card total">
+        <div class="label">Total de Consultas</div>
+        <div class="valor" th:text="${resumo.totalConsultas}"></div>
+        <div class="sub" th:text="${resumo.totalFinalizadas} + ' finalizadas'"></div>
+    </div>
+    <div class="card conclusao">
+        <div class="label">Taxa de Conclusão</div>
+        <div class="valor" th:text="${#numbers.formatDecimal(resumo.taxaConclusaoGeral, 1, 'NONE', 1, 'COMMA')} + '%'"></div>
+    </div>
+    <div class="card nota">
+        <div class="label">Nota Média Geral</div>
+        <div class="valor" th:if="${resumo.notaMediaGeral != null}" th:text="${#numbers.formatDecimal(resumo.notaMediaGeral, 1, 'NONE', 1, 'COMMA')} + ' / 5'"></div>
+        <div class="valor" th:if="${resumo.notaMediaGeral == null}">-</div>
+        <div class="sub" th:text="${resumo.totalAvaliacoes} + ' avaliações'"></div>
+    </div>
+    <div class="card risco">
+        <div class="label">Cancel. / Reprov.</div>
+        <div class="valor" th:text="${#numbers.formatDecimal(resumo.taxaCancelamentoGeral + resumo.taxaReprovacaoGeral, 1, 'NONE', 1, 'COMMA')} + '%'"></div>
+        <div class="sub" th:text="${resumo.totalCanceladas} + ' canceladas, ' + ${resumo.totalReprovadas} + ' reprovadas'"></div>
+    </div>
+    <div class="card destaque">
+        <div class="label">Destaque do Período</div>
+        <div class="valor" th:if="${resumo.veterinarioDestaque != null}" th:text="${resumo.veterinarioDestaque}"></div>
+        <div class="valor" th:if="${resumo.veterinarioDestaque == null}">-</div>
+        <div class="sub" th:if="${resumo.notaVeterinarioDestaque != null}" th:text="'Nota ' + ${#numbers.formatDecimal(resumo.notaVeterinarioDestaque, 1, 'NONE', 1, 'COMMA')} + ' / 5'"></div>
+    </div>
+</div>
+
+<h2>Nota Média por Veterinário</h2>
+<div th:if="${#lists.isEmpty(desempenho)}" class="info">Nenhuma consulta encontrada no período.</div>
+<div class="barra-linha" th:each="vet : ${desempenho}">
+    <div class="barra-legenda">
+        <span class="nome" th:text="${vet.nome}"></span>
+        <span class="valores"
+              th:if="${vet.notaMedia != null}"
+              th:text="${#numbers.formatDecimal(vet.notaMedia, 1, 'NONE', 1, 'COMMA')} + ' / 5 (' + ${vet.quantidadeAvaliacoes} + ' avaliações)'">
+        </span>
+        <span class="valores" th:if="${vet.notaMedia == null}">Sem avaliações</span>
+    </div>
+    <div class="barra-fundo">
+        <div class="barra-preenchida" th:style="'width:' + ${vet.notaMedia != null ? (vet.notaMedia / 5) * 100 : 0} + '%'"></div>
+    </div>
+</div>
+
+<h2>Detalhamento por Veterinário</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Veterinário</th>
+        <th>Especialização(ões)</th>
+        <th>Total</th>
+        <th>Finalizadas</th>
+        <th>Canceladas</th>
+        <th>Reprovadas</th>
+        <th>Taxa Conclusão</th>
+        <th>Nota Média</th>
+        <th>Avaliações</th>
+        <th>Tempo Médio Atend.</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="vet : ${desempenho}">
+        <td th:text="${vet.nome}"></td>
+        <td th:text="${vet.especializacoes}"></td>
+        <td th:text="${vet.totalConsultas}"></td>
+        <td th:text="${vet.finalizadas}"></td>
+        <td th:text="${vet.canceladas}"></td>
+        <td th:text="${vet.reprovadas}"></td>
+        <td th:text="${#numbers.formatDecimal(vet.taxaConclusao, 1, 'NONE', 1, 'COMMA')} + '%'"></td>
+        <td th:text="${vet.notaMedia != null ? #numbers.formatDecimal(vet.notaMedia, 1, 'NONE', 1, 'COMMA') : '-'}"></td>
+        <td th:text="${vet.quantidadeAvaliacoes}"></td>
+        <td th:text="${vet.tempoMedioAtendimentoMinutos != null ? #numbers.formatDecimal(vet.tempoMedioAtendimentoMinutos, 1, 'NONE', 0, 'COMMA') + ' min' : '-'}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Sistema de Relatórios • Documento gerado automaticamente
+</div>
+
+</body>
+</html>

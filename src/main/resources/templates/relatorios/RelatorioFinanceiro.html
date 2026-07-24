@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 40px;
+        }
+
+        .header {
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #4CAF50;
+        }
+
+        h2 {
+            font-size: 15px;
+            color: #333;
+            margin: 30px 0 10px 0;
+        }
+
+        .info {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .cards {
+            width: 100%;
+            display: table;
+            table-layout: fixed;
+            border-spacing: 8px 0;
+        }
+
+        .card {
+            display: table-cell;
+            width: 20%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            vertical-align: top;
+        }
+
+        .card .label {
+            font-size: 10px;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .card .valor {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .card.receita .valor { color: #2e7d32; }
+        .card.receber .valor { color: #1976d2; }
+        .card.atraso .valor { color: #f57c00; }
+        .card.recusado .valor { color: #d32f2f; }
+
+        .variacao {
+            font-size: 11px;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        .variacao.positiva { color: #2e7d32; }
+        .variacao.negativa { color: #d32f2f; }
+
+        .barra-linha {
+            margin-bottom: 10px;
+        }
+
+        .barra-legenda {
+            display: table;
+            width: 100%;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .barra-legenda .nome {
+            display: table-cell;
+            text-align: left;
+        }
+
+        .barra-legenda .valores {
+            display: table-cell;
+            text-align: right;
+            color: #666;
+        }
+
+        .barra-fundo {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 4px;
+            height: 12px;
+        }
+
+        .barra-preenchida {
+            background-color: #4CAF50;
+            height: 12px;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            text-align: right;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Relatório Financeiro</h1>
+    <h3 th:text="'Período: ' + ${periodo}"></h3>
+    <div class="info">
+        Gerado em: <span th:text="${dataGeracao}"></span>
+    </div>
+</div>
+
+<div class="cards">
+    <div class="card receita">
+        <div class="label">Receita Aprovada</div>
+        <div class="valor" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.receitaTotal, 1, 'POINT', 2, 'COMMA')}"></div>
+        <div class="variacao" th:if="${resumo.variacaoPercentualReceita != null}"
+             th:classappend="${resumo.variacaoPercentualReceita >= 0} ? 'positiva' : 'negativa'"
+             th:text="(${resumo.variacaoPercentualReceita >= 0} ? '▲ ' : '▼ ') + ${#numbers.formatDecimal(resumo.variacaoPercentualReceita, 1, 'NONE', 1, 'COMMA')} + '% vs período anterior'">
+        </div>
+    </div>
+    <div class="card">
+        <div class="label">Ticket Médio</div>
+        <div class="valor" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.ticketMedio, 1, 'POINT', 2, 'COMMA')}"></div>
+    </div>
+    <div class="card receber">
+        <div class="label">A Receber</div>
+        <div class="valor" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.valorAReceber, 1, 'POINT', 2, 'COMMA')}"></div>
+    </div>
+    <div class="card atraso">
+        <div class="label">Em Atraso</div>
+        <div class="valor" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.valorEmAtraso, 1, 'POINT', 2, 'COMMA')}"></div>
+    </div>
+    <div class="card recusado">
+        <div class="label">Recusado</div>
+        <div class="valor" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.valorRecusado, 1, 'POINT', 2, 'COMMA')}"></div>
+    </div>
+</div>
+
+<h2 th:text="'Transações no período: ' + ${resumo.quantidadeTransacoes} + ' (' + ${resumo.quantidadeAprovados} + ' aprovadas)'"></h2>
+
+<h2>Receita por Forma de Pagamento</h2>
+<div th:if="${#lists.isEmpty(receitaPorTipo)}" class="info">Nenhuma receita aprovada no período.</div>
+<div class="barra-linha" th:each="item : ${receitaPorTipo}">
+    <div class="barra-legenda">
+        <span class="nome" th:text="${item.tipoPagamento}"></span>
+        <span class="valores" th:text="'R$ ' + ${#numbers.formatDecimal(item.valor, 1, 'POINT', 2, 'COMMA')} + ' (' + ${#numbers.formatDecimal(item.percentual, 1, 'NONE', 1, 'COMMA')} + '%)'"></span>
+    </div>
+    <div class="barra-fundo">
+        <div class="barra-preenchida" th:style="'width:' + ${item.percentual} + '%'"></div>
+    </div>
+</div>
+
+<h2>Detalhamento dos Pagamentos</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Data</th>
+        <th>Cliente</th>
+        <th>Forma de Pagamento</th>
+        <th>Status</th>
+        <th>Valor</th>
+        <th>Aprovado Por</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="pagamento : ${pagamentos}">
+        <td th:text="${pagamento.dataPagamento}"></td>
+        <td th:text="${pagamento.cliente}"></td>
+        <td th:text="${pagamento.tipoPagamento}"></td>
+        <td th:text="${pagamento.statusPagamento}"></td>
+        <td th:text="'R$ ' + ${#numbers.formatDecimal(pagamento.valor, 1, 'POINT', 2, 'COMMA')}"></td>
+        <td th:text="${pagamento.aprovadoPor}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Sistema de Relatórios • Documento gerado automaticamente
+</div>
+
+</body>
+</html>
