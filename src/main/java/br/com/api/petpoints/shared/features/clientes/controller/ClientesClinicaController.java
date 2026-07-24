@@ -1,16 +1,17 @@
-package br.com.api.petpoints.domain.users.gerente.features.clientes.controller;
+package br.com.api.petpoints.shared.features.clientes.controller;
 
-import br.com.api.petpoints.domain.users.gerente.features.clientes.dto.ClienteDto;
-import br.com.api.petpoints.domain.users.gerente.features.clientes.dto.ClientesDetalhesDto;
-import br.com.api.petpoints.domain.users.gerente.features.clientes.dto.HistoricoConsultasClienteDto;
-import br.com.api.petpoints.domain.users.gerente.features.clientes.dto.PetsClienteDto;
-import br.com.api.petpoints.domain.users.gerente.features.clientes.service.ClientesClinicaServiceImpl;
+import br.com.api.petpoints.domain.users.gerente.features.pets.form.RelatorioPetsClinicaForm;
+import br.com.api.petpoints.shared.features.clientes.dto.ClienteDto;
+import br.com.api.petpoints.shared.features.clientes.dto.ClientesDetalhesDto;
+import br.com.api.petpoints.shared.features.clientes.dto.HistoricoConsultasClienteDto;
+import br.com.api.petpoints.shared.features.clientes.dto.PetsClienteDto;
+import br.com.api.petpoints.shared.features.clientes.forms.RelatorioClienteClinicaForm;
+import br.com.api.petpoints.shared.features.clientes.service.ClientesClinicaServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,5 +40,14 @@ public class ClientesClinicaController {
     @GetMapping("/pets-cliente/{idCliente}")
     public ResponseEntity<List<PetsClienteDto>> buscarPetsClientePorId(@PathVariable Long idCliente) {
         return ResponseEntity.ok().body(this.clientesClinicaService.listarPetsCliente(idCliente));
+    }
+
+    @PostMapping("/relatorios")
+    public ResponseEntity<byte[]> gerarRelatorioClientesClinica(@RequestBody RelatorioClienteClinicaForm form) {
+        byte[] pdf = this.clientesClinicaService.gerarRelatorio(form);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=RelatorioGenerico.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }

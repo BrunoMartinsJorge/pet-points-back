@@ -1,4 +1,4 @@
-package br.com.api.petpoints.domain.users.gerente.features.clientes.dto;
+package br.com.api.petpoints.shared.features.clientes.dto;
 
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.TipoAnimalEnum;
