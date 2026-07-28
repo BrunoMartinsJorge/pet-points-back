@@ -3,54 +3,82 @@ package br.com.api.petpoints.shared.models;
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pagamento")
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class PagamentoModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "valor_pagamento")
-    private double valorPagamento;
+    @Column(name = "valor_pagamento", nullable = false, precision = 10, scale = 2)
+    private BigDecimal valorPagamento;
+
+    @Column(name = "id_pagamento_externo", unique = true)
+    private String idPagamentoExterno;
 
     @CreationTimestamp
+    @Column(name = "data_criacao", updatable = false)
+    private LocalDateTime dataCriacao;
+
+    @UpdateTimestamp
+    @Column(name = "data_atualizacao")
+    private LocalDateTime dataAtualizacao;
+
     @Column(name = "data_pagamento")
     private LocalDateTime dataPagamento;
 
     @Column(name = "data_limite_pagamento")
     private LocalDateTime dataLimitePagamento;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aprovado_por")
     private UsuarioModel aprovadoPor;
 
-    @ManyToOne
-    @JoinColumn(name = "emitido_por")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emitido_por", nullable = false)
     private UsuarioModel emitidoPor;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_pagamento")
+    @Column(name = "status_pagamento", nullable = false)
     private StatusPagamentoEnum statusPagamento = StatusPagamentoEnum.PENDENTE;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_pagamento")
+    @Column(name = "tipo_pagamento", nullable = false)
     private TipoPagamentoEnum tipoPagamento;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "comprovante_id")
     private ComprovanteModel comprovante;
 
-    @Column(name = "motivo_indeferimento")
+    @Column(name = "motivo_indeferimento", length = 500)
     private String motivoIndeferimento;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "consulta_id")
+    private ConsultaModel consulta;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PagamentoModel that = (PagamentoModel) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

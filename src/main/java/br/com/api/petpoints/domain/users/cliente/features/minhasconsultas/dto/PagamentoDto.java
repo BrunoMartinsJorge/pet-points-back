@@ -31,7 +31,7 @@ public class PagamentoDto {
     public PagamentoDto(PagamentoModel pagamento, byte[] comprovante, String tipoArquivo) {
         this.id = pagamento.getId();
         this.forma = pagamento.getTipoPagamento();
-        this.valor = pagamento.getValorPagamento();
+        this.valor = Double.parseDouble(pagamento.getValorPagamento().toString());
         this.dataLimite = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataLimitePagamento());
         this.status = pagamento.getStatusPagamento();
         this.motivoIndeferimento = pagamento.getMotivoIndeferimento();
