@@ -31,7 +31,9 @@ public final class PagamentoDto {
             String nomePagador,
 
             // Sua referência interna (ex.: id da consulta). Opcional.
-            String externalReference
+            String externalReference,
+
+            String cpf
     ) {
     }
 
@@ -43,7 +45,7 @@ public final class PagamentoDto {
             String valor,
             String qrCode,           // "copia e cola"
             String qrCodeBase64,     // <img src="data:image/png;base64,...">
-            String ticketUrl         // alternativa: redirecionar para a página do MP
+            String ticketUrl        // alternativa: redirecionar para a página do MP
     ) {
     }
 

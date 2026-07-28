@@ -9,6 +9,7 @@ import br.com.api.petpoints.shared.repository.PagamentoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -45,8 +46,10 @@ public class DashboardFinanceiroServiceImpl implements DashboardFinanceiroServic
         List<PagamentoModel> emAtraso = pendentes.stream().filter(this::isVencido).toList();
         List<PagamentoModel> aReceber = pendentes.stream().filter(pagamento -> !this.isVencido(pagamento)).toList();
 
-        double valorPendente = aReceber.stream().mapToDouble(PagamentoModel::getValorPagamento).sum();
-        double valorEmAtraso = emAtraso.stream().mapToDouble(PagamentoModel::getValorPagamento).sum();
+        double valorPendente = aReceber.stream().map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
+        double valorEmAtraso = emAtraso.stream().map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         return new CardsFinanceiroDto(
                 receitaMesAtual, this.calcularVariacao(receitaMesAtual, receitaMesAnterior),
@@ -85,8 +88,8 @@ public class DashboardFinanceiroServiceImpl implements DashboardFinanceiroServic
             LocalDate dia = hoje.minusDays(i);
             double total = aprovados.stream()
                     .filter(pagamento -> pagamento.getDataPagamento().toLocalDate().equals(dia))
-                    .mapToDouble(PagamentoModel::getValorPagamento)
-                    .sum();
+                    .map(PagamentoModel::getValorPagamento)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
             labels.add(String.format("%02d/%02d", dia.getDayOfMonth(), dia.getMonthValue()));
             valores.add(total);
         }
@@ -103,8 +106,8 @@ public class DashboardFinanceiroServiceImpl implements DashboardFinanceiroServic
             YearMonth mes = mesAtual.minusMonths(i);
             double total = aprovados.stream()
                     .filter(pagamento -> YearMonth.from(pagamento.getDataPagamento().toLocalDate()).equals(mes))
-                    .mapToDouble(PagamentoModel::getValorPagamento)
-                    .sum();
+                    .map(PagamentoModel::getValorPagamento)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
             labels.add(MESES[mes.getMonthValue() - 1] + "/" + String.valueOf(mes.getYear()).substring(2));
             valores.add(total);
         }
@@ -116,8 +119,8 @@ public class DashboardFinanceiroServiceImpl implements DashboardFinanceiroServic
         return pagamentos.stream()
                 .filter(pagamento -> pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO)
                 .filter(filtro)
-                .mapToDouble(PagamentoModel::getValorPagamento)
-                .sum();
+                .map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
     private boolean isPendente(PagamentoModel pagamento) {

@@ -89,7 +89,7 @@ public class MinhasConsultasClienteController {
     }
 
     @GetMapping("/pagamento/{idConsulta}")
-    public ResponseEntity<PagamentoDto> buscarPagamentoPorConsulta(@PathVariable Long idConsulta) {
+    public ResponseEntity<PagamentoConsultaDto> buscarPagamentoPorConsulta(@PathVariable Long idConsulta) {
         return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarPagamentoConsulta(idConsulta));
     }
 

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -200,7 +201,7 @@ public class UsuarioPerfilServiceImpl implements UsuarioPerfilService {
         if (!cliente.getPermissao().equals(TipoUsuario.C))
             throw new RuntimeException("O tipo de usuário não tem acesso a essa feature!");
         List<PagamentosDto> pagamentosAtrasados = this.servicePagamentosCliente.listarPagamentosPendentesAtrasados(idUsuario);
-        double saldoPendente = pagamentosAtrasados.stream().map(PagamentosDto::getValor).reduce(0.0, Double::sum);
+        double saldoPendente = pagamentosAtrasados.stream().map(PagamentosDto::getValor).reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
         return new RelatorioFinanceiroClienteDto(pagamentosAtrasados.size(), saldoPendente, pagamentosAtrasados);
     }
 

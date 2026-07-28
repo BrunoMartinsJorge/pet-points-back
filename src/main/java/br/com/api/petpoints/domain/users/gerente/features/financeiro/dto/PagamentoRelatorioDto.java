@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -19,7 +20,7 @@ public class PagamentoRelatorioDto {
     private String cliente;
     private String tipoPagamento;
     private String statusPagamento;
-    private double valor;
+    private BigDecimal valor;
     private String aprovadoPor;
 
     public PagamentoRelatorioDto(PagamentoModel pagamento) {

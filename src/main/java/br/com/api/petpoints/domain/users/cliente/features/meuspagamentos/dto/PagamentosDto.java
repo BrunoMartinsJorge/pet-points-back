@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class PagamentosDto {
 
     private Long id;
     private Long idConsulta;
-    private double valor;
+    private BigDecimal valor;
     private String dataLimitePagamento;
     private StatusPagamentoEnum statusPagamento;
     private TipoPagamentoEnum tipoPagamento;

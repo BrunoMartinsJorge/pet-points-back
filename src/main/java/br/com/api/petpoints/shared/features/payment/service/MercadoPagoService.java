@@ -2,15 +2,10 @@ package br.com.api.petpoints.shared.features.payment.service;
 
 import br.com.api.petpoints.core.api.MercadoPagoProperties;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -19,10 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Camada de comunicação com a API do Mercado Pago.
- * Não conhece o seu banco — só faz as chamadas HTTP e devolve os DTOs do MP.
- */
+@Slf4j
 @Service
 public class MercadoPagoService {
 
@@ -37,38 +29,130 @@ public class MercadoPagoService {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.accessToken())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
+
+        log.info("Cliente Mercado Pago inicializado. Base URL: {}", properties.baseUrl());
     }
 
-    /** POST /v1/orders — cria a order (o X-Idempotency-Key é único por chamada). */
+    /**
+     * Cria uma nova ordem de pagamento no Mercado Pago utilizando o método PIX.
+     * <p>
+     * A requisição é enviada para a API do Mercado Pago contendo todas as
+     * informações necessárias para geração da cobrança. Cada requisição recebe
+     * uma chave de idempotência única, evitando a criação de pagamentos
+     * duplicados em caso de reenvio.
+     *
+     * @param request Dados necessários para criação da ordem de pagamento.
+     * @return Resposta da API contendo os dados da ordem criada.
+     * @throws MercadoPagoException Caso a API do Mercado Pago retorne erro.
+     */
     public MercadoPagoDto.OrderResponse criarOrder(MercadoPagoDto.OrderRequest request) {
-        return restClient.post()
-                .uri("/v1/orders")
-                .header("X-Idempotency-Key", UUID.randomUUID().toString())
-                .body(request)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, (req, res) -> {
-                    String corpo = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
-                    throw new MercadoPagoException(
-                            "Erro ao criar order no Mercado Pago (" + res.getStatusCode() + "): " + corpo);
-                })
-                .body(MercadoPagoDto.OrderResponse.class);
+
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        log.info(
+                "Iniciando criação de ordem de pagamento. Cliente: {}, Valor: {}, Idempotency-Key: {}",
+                request.payer().email(),
+                request.transactions().payments().getFirst().amount(),
+                idempotencyKey);
+
+        try {
+
+            MercadoPagoDto.OrderResponse response = restClient.post()
+                    .uri("/v1/orders")
+                    .header("X-Idempotency-Key", idempotencyKey)
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> {
+                        String corpo = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
+
+                        log.error(
+                                "Erro ao criar ordem no Mercado Pago. Status: {}, Resposta: {}",
+                                res.getStatusCode(),
+                                corpo);
+
+                        throw new MercadoPagoException(
+                                "Erro ao criar ordem no Mercado Pago ("
+                                        + res.getStatusCode()
+                                        + "): "
+                                        + corpo);
+                    })
+                    .body(MercadoPagoDto.OrderResponse.class);
+
+            log.info(
+                    "Ordem criada com sucesso. OrderId: {}, Status: {}",
+                    response != null ? response.id() : "SEM ID",
+                    response != null ? response.status() : "SEM STATUS");
+
+            return response;
+
+        } catch (MercadoPagoException e) {
+            throw e;
+        } catch (Exception e) {
+
+            log.error(
+                    "Falha inesperada ao criar ordem de pagamento para o documento {}.",
+                    request.payer().identification().number(),
+                    e);
+
+            throw new RuntimeException("Erro ao comunicar com o Mercado Pago.", e);
+        }
     }
 
-    /** GET /v1/orders/{id} — consulta a order (status atualizado do pagamento). */
+    /**
+     * Consulta uma ordem de pagamento existente através do seu identificador.
+     *
+     * @param orderId Identificador da ordem de pagamento.
+     * @return Dados atualizados da ordem.
+     * @throws MercadoPagoException Caso a API retorne erro durante a consulta.
+     */
     public MercadoPagoDto.OrderResponse buscarOrder(String orderId) {
-        return restClient.get()
+
+        log.info("Consultando ordem de pagamento {}.", orderId);
+
+        MercadoPagoDto.OrderResponse response = restClient.get()
                 .uri("/v1/orders/{id}", orderId)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (req, res) -> {
                     String corpo = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
+
+                    log.error(
+                            "Erro ao consultar ordem {}. Status: {}, Resposta: {}",
+                            orderId,
+                            res.getStatusCode(),
+                            corpo);
+
                     throw new MercadoPagoException(
-                            "Erro ao buscar order " + orderId + " (" + res.getStatusCode() + "): " + corpo);
+                            "Erro ao buscar order "
+                                    + orderId
+                                    + " ("
+                                    + res.getStatusCode()
+                                    + "): "
+                                    + corpo);
                 })
                 .body(MercadoPagoDto.OrderResponse.class);
+
+        log.info(
+                "Consulta realizada com sucesso. OrderId: {}, Status: {}",
+                response != null ? response.id() : "SEM ID",
+                response != null ? response.status() : "SEM STATUS");
+
+        return response;
     }
 
-    /** GET /v1/payment_methods/search — lista os métodos de pagamento disponíveis. */
+    /**
+     * Consulta os métodos de pagamento disponíveis para utilização.
+     * <p>
+     * Quando o parâmetro {@code marketplace} for nulo, a API considera o
+     * comportamento padrão (PIX).
+     *
+     * @param marketplace Marketplace utilizado na consulta (opcional).
+     * @return Lista de métodos de pagamento disponíveis. Nunca retorna
+     *         {@code null}.
+     */
     public List<MercadoPagoDto.PaymentMethodInfo> buscarMetodosPagamento(String marketplace) {
+
+        log.info("Consultando métodos de pagamento. Marketplace: {}", marketplace);
+
         MercadoPagoDto.PaymentMethodInfo[] metodos = restClient.get()
                 .uri(uri -> uri.path("/v1/payment_methods/search")
                         .queryParam("public_key", properties.publicKey())
@@ -77,11 +161,19 @@ public class MercadoPagoService {
                 .retrieve()
                 .body(MercadoPagoDto.PaymentMethodInfo[].class);
 
+        int quantidade = metodos == null ? 0 : metodos.length;
+
+        log.info("{} método(s) de pagamento encontrado(s).", quantidade);
+
         return metodos == null ? List.of() : Arrays.asList(metodos);
     }
 
-    /** Exceção simples para erros vindos da API do MP. */
+    /**
+     * Exceção utilizada para representar erros retornados pela API do Mercado
+     * Pago.
+     */
     public static class MercadoPagoException extends RuntimeException {
+
         public MercadoPagoException(String message) {
             super(message);
         }

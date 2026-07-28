@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -19,7 +20,7 @@ public class FaturaDto {
     private String numero;
     private Long clienteId;
     private String clienteNome;
-    private double valor;
+    private BigDecimal valor;
     private String status;
     private LocalDateTime data;
     private String tipoPagamento;
@@ -42,8 +43,12 @@ public class FaturaDto {
 
     private static String calcularStatus(PagamentoModel pagamento) {
         return switch (pagamento.getStatusPagamento()) {
-            case APROVADO -> "PAGO";
-            case REPROVADO -> "RECUSADO";
+            case PAGO -> "PAGO";
+            case APROVADO -> "APROVADO";
+            case REPROVADO -> "REPROVADO";
+            case CANCELADO -> "CANCELADO";
+            case DEVOLVIDO -> "DEVOLVIDO";
+            case RECUSADO -> "RECUSADO";
             case PENDENTE, ENVIADO -> {
                 boolean vencido = pagamento.getDataLimitePagamento() != null
                         && pagamento.getDataLimitePagamento().toLocalDate().isBefore(LocalDate.now());

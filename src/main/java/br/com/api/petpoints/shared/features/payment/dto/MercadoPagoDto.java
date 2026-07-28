@@ -1,6 +1,8 @@
 package br.com.api.petpoints.shared.features.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -23,72 +25,81 @@ public final class MercadoPagoDto {
     }
 
     // ---------- Requisicao: POST /v1/orders ----------
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     @JsonInclude(JsonInclude.Include.NON_NULL) // nao envia campos nulos
     public record OrderRequest(
-            String type,                 // "online"
-            String externalReference,    // sua referencia interna
-            String processingMode,       // "automatic"
-            String totalAmount,          // "200.00" (string!)
+            String type,                                                 // "online"
+            @JsonProperty("external_reference") String externalReference,
+            @JsonProperty("processing_mode") String processingMode,      // "automatic"
+            @JsonProperty("total_amount") String totalAmount,            // "200.00" (string!)
             String description,
             Payer payer,
             Transactions transactions
     ) {
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public record Payer(String email, String firstName) {
+        public record Payer(
+                String email,
+                @JsonProperty("first_name") String firstName,
+                Identification identification
+        ) {
+        }
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public record Identification(
+                String type,
+                String number
+        ) {
         }
 
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
         public record Transactions(List<Payment> payments) {
         }
 
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-        public record Payment(String amount, PaymentMethod paymentMethod) {
+        public record Payment(
+                String amount,
+                @JsonProperty("payment_method") PaymentMethod paymentMethod
+        ) {
         }
 
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
         public record PaymentMethod(String id, String type) { // "pix" / "bank_transfer"
         }
     }
 
     // ---------- Resposta: POST /v1/orders e GET /v1/orders/{id} ----------
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record OrderResponse(
-            String id,                   // "ORDTST01..."
+            String id,                                                    // "ORDTST01..."
             String type,
-            String status,               // created / action_required / processed / canceled / refunded ...
-            String statusDetail,         // waiting_transfer / accredited / ...
-            String totalAmount,
-            String totalPaidAmount,
-            String externalReference,
+            String status,                                                // processed / action_required / ...
+            @JsonProperty("status_detail") String statusDetail,           // accredited / waiting_transfer / ...
+            @JsonProperty("total_amount") String totalAmount,
+            @JsonProperty("total_paid_amount") String totalPaidAmount,
+            @JsonProperty("external_reference") String externalReference,
             String description,
             String currency,
             Transactions transactions
     ) {
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public record Transactions(List<Payment> payments) {
         }
 
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public record Payment(
-                String id,               // "PAY01..."
+                String id,                                                // "PAY01..."
                 String amount,
                 String status,
-                String statusDetail,
-                PaymentMethod paymentMethod
+                @JsonProperty("status_detail") String statusDetail,
+                @JsonProperty("date_of_expiration") String dateOfExpiration,
+                @JsonProperty("payment_method") PaymentMethod paymentMethod
         ) {
         }
 
         // Para PIX, os dados do QR chegam aqui dentro.
-        // OBS: confirme os nomes exatos (qr_code / qr_code_base64 / ticket_url) na resposta real da sua conta.
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+        // OBS: confirme os nomes exatos na resposta real da sua conta.
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public record PaymentMethod(
                 String id,
                 String type,
-                String qrCode,           // "copia e cola" (string EMV)
-                String qrCodeBase64,     // imagem PNG do QR em base64
-                String ticketUrl         // pagina do MP com o QR
+                @JsonProperty("qr_code") String qrCode,                   // "copia e cola" (string EMV)
+                @JsonProperty("qr_code_base64") String qrCodeBase64,      // imagem PNG do QR em base64
+                @JsonProperty("ticket_url") String ticketUrl             // pagina do MP com o QR
         ) {
         }
     }
@@ -96,23 +107,23 @@ public final class MercadoPagoDto {
     // ---------- Resposta: GET /v1/payment_methods/search ----------
     // OBS: se a resposta vier embrulhada em { "results": [...] }, crie um record
     // wrapper com List<PaymentMethodInfo> results e ajuste o service.
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record PaymentMethodInfo(
             String id,
             String name,
-            String paymentTypeId,
+            @JsonProperty("payment_type_id") String paymentTypeId,
             String status
     ) {
     }
 
     // ---------- Webhook (notificacao server-to-server) ----------
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record WebhookNotification(
             String action,   // ex.: "payment.updated"
             String type,     // ex.: "payment" / "order"
             Data data
     ) {
-        @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+        @JsonIgnoreProperties(ignoreUnknown = true)
         public record Data(String id) {
         }
     }

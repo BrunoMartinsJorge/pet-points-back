@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -78,7 +79,8 @@ public class RelatorioFinanceiroServiceImpl implements RelatorioFinanceiroServic
                 .filter(pagamento -> pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO)
                 .toList();
 
-        double receitaTotal = aprovados.stream().mapToDouble(PagamentoModel::getValorPagamento).sum();
+        double receitaTotal = aprovados.stream().map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
         double ticketMedio = aprovados.isEmpty() ? 0 : receitaTotal / aprovados.size();
 
         LocalDate hoje = LocalDate.now();
@@ -86,16 +88,19 @@ public class RelatorioFinanceiroServiceImpl implements RelatorioFinanceiroServic
         double valorAReceber = pagamentos.stream()
                 .filter(this::isPendente)
                 .filter(pagamento -> pagamento.getDataLimitePagamento() == null || !pagamento.getDataLimitePagamento().toLocalDate().isBefore(hoje))
-                .mapToDouble(PagamentoModel::getValorPagamento).sum();
+                .map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         double valorEmAtraso = pagamentos.stream()
                 .filter(this::isPendente)
                 .filter(pagamento -> pagamento.getDataLimitePagamento() != null && pagamento.getDataLimitePagamento().toLocalDate().isBefore(hoje))
-                .mapToDouble(PagamentoModel::getValorPagamento).sum();
+                .map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         double valorRecusado = pagamentos.stream()
                 .filter(pagamento -> pagamento.getStatusPagamento() == StatusPagamentoEnum.REPROVADO)
-                .mapToDouble(PagamentoModel::getValorPagamento).sum();
+                .map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         Double variacaoPercentual = this.calcularVariacaoPercentual(form, receitaTotal);
 
@@ -119,7 +124,8 @@ public class RelatorioFinanceiroServiceImpl implements RelatorioFinanceiroServic
                 .filter(pagamento -> pagamento.getDataPagamento() != null)
                 .filter(pagamento -> !pagamento.getDataPagamento().toLocalDate().isBefore(inicioAnterior)
                         && !pagamento.getDataPagamento().toLocalDate().isAfter(fimAnterior))
-                .mapToDouble(PagamentoModel::getValorPagamento).sum();
+                .map(PagamentoModel::getValorPagamento)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         if (receitaAnterior == 0) return null;
         return ((receitaAtual - receitaAnterior) / receitaAnterior) * 100;
@@ -128,7 +134,7 @@ public class RelatorioFinanceiroServiceImpl implements RelatorioFinanceiroServic
     private List<ReceitaPorTipoPagamentoDto> montarReceitaPorTipo(List<PagamentoModel> pagamentos, double receitaTotal) {
         Map<TipoPagamentoEnum, Double> agrupado = pagamentos.stream()
                 .filter(pagamento -> pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO && pagamento.getTipoPagamento() != null)
-                .collect(Collectors.groupingBy(PagamentoModel::getTipoPagamento, Collectors.summingDouble(PagamentoModel::getValorPagamento)));
+                .collect(Collectors.groupingBy(PagamentoModel::getTipoPagamento, Collectors.summingDouble(pagamento -> Double.parseDouble(pagamento.getValorPagamento().toString()))));
 
         return agrupado.entrySet().stream()
                 .map(entry -> new ReceitaPorTipoPagamentoDto(

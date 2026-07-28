@@ -11,6 +11,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,6 +26,7 @@ public class UsuariosPadroes implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final PagamentoRepository pagamentoRepository;
     private final ConsultaRepository consultaRepository;
+    private final PetRepository petRepository;
 
     @Transactional
     @Override
@@ -58,6 +60,14 @@ public class UsuariosPadroes implements CommandLineRunner {
         criados.put("cliente", salvarUsuario(
                 "Marizinha", "cliente@gmail.com",
                 GeneroEnum.F, "1980-10-16", "18996738459", "60099673096", TipoUsuario.C));
+
+        pet(criados.get("cliente"));
+
+        criados.put("cliente_pagamento", salvarUsuario(
+                "Cliente Teste Pagamento", "test_user_1724857044@testuser.com",
+                GeneroEnum.F, "1980-10-16", "18996738459", "19119119100", TipoUsuario.C));
+
+        pet(criados.get("cliente_pagamento"));
 
         criados.put("estoquista", salvarUsuario(
                 "Yann", "estoquista@gmail.com",
@@ -149,13 +159,25 @@ public class UsuariosPadroes implements CommandLineRunner {
         this.tipoConsultaRepository.saveAll(List.of(rotina, emergencia, vacinacao));
     }
 
+    private void pet(UsuarioModel cliente) {
+        PetModel pet = new PetModel();
+        pet.setTutor(cliente);
+        pet.setStatus(StatusPerfilEnum.A);
+        pet.setGenero(GeneroEnum.F);
+        pet.setDataNascimento(LocalDate.now());
+        pet.setNome("Mel");
+        pet.setRaca("Shitzu");
+        pet.setTipo(TipoAnimalEnum.CACHORRO);
+        this.petRepository.save(pet);
+    }
+
     private void pagamentos() {
         List<ConsultaModel> consultas = this.consultaRepository.findAllByPagamentoIsNull();
         for (ConsultaModel consulta : consultas) {
             PagamentoModel pagamento = new PagamentoModel();
             pagamento.setTipoPagamento(TipoPagamentoEnum.PIX);
             pagamento.setDataLimitePagamento(consulta.getDataConsulta().plusWeeks(2));
-            pagamento.setValorPagamento(consulta.getTipoConsulta() != null ? consulta.getTipoConsulta().getValor() : 0);
+            pagamento.setValorPagamento(consulta.getTipoConsulta() != null ? BigDecimal.valueOf(consulta.getTipoConsulta().getValor()) : BigDecimal.ZERO);
             pagamento.setEmitidoPor(consulta.getSolicitante());
             pagamento = this.pagamentoRepository.save(pagamento);
             consulta.setPagamento(pagamento);
