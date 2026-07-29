@@ -2,6 +2,7 @@ package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto;
 
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
+import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,15 +39,20 @@ public class PagamentoConsultaDto {
         this.formaPagamento = pagamento.getTipoPagamento();
     }
 
-    public PagamentoConsultaDto(PagamentoModel pagamento, br.com.api.petpoints.shared.features.payment.dto.PagamentoDto.PagamentoPixResponse apiResponse) {
-        PagamentoConsultaDto dto = new PagamentoConsultaDto(pagamento);
-        PagamentoPixDto pix = new PagamentoPixDto(
+    public PagamentoConsultaDto(PagamentoModel pagamento,
+                                PagamentoDto.PagamentoPixResponse apiResponse) {
+
+        this.id = pagamento.getId();
+        this.status = pagamento.getStatusPagamento();
+        this.valor = pagamento.getValorPagamento();
+        this.formaPagamento = pagamento.getTipoPagamento();
+
+        this.pixPagamento = new PagamentoPixDto(
                 apiResponse.orderId(),
                 apiResponse.pagamentoId(),
                 apiResponse.status(),
                 apiResponse.ticketUrl(),
                 apiResponse.qrCodeBase64()
         );
-        dto.setPixPagamento(pix);
     }
 }
