@@ -1,6 +1,9 @@
 package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
+import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
+import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
@@ -13,6 +16,7 @@ import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +28,7 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MinhasConsultasClienteServiceImpl implements MinhasConsultasClienteService {
@@ -38,6 +43,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final ArquivoRepository arquivoRepository;
     private final ComprovanteRepository comprovanteRepository;
     private final AvaliacaoRepository avaliacaoRepository;
+    private final PagamentoService pagamentoService;
 
     private UsuarioModel getUsuarioPorId(Long idUsuario) {
         return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
@@ -125,7 +131,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         consulta.setVeterinario(veterinario);
         consulta.setTipoConsulta(tipoConsulta);
         consulta.setPet(pet);
-        consulta.setPagamento(this.gerarFormaPagamento(tipoConsulta, form.getDataConsulta(), form.getFormaPagamento()));
+        // consulta.setPagamento(this.gerarFormaPagamento(tipoConsulta, form.getDataConsulta(), form.getFormaPagamento()));
         this.consultaRepository.save(consulta);
     }
 
@@ -134,7 +140,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         PagamentoModel pagamento = new PagamentoModel();
         pagamento.setDataLimitePagamento(dataConsulta);
         pagamento.setTipoPagamento(tipoPagamento);
-        pagamento.setValorPagamento(tipo.getValor());
+        pagamento.setValorPagamento(BigDecimal.valueOf(tipo.getValor()));
         return this.pagamentoRepository.save(pagamento);
     }
 
@@ -211,16 +217,21 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     }
 
     @Override
-    public PagamentoDto buscarPagamentoConsulta(Long idConsulta) {
+    public PagamentoConsultaDto buscarPagamentoConsulta(Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
-        PagamentoModel pagamento = consulta.getPagamento();
-        byte[] comprovante = new byte[0];
-        String tipoArquivo = "";
-        if (pagamento.getComprovante() != null) {
-            comprovante = this.arquivoRepository.findById(pagamento.getComprovante().getArquivo()).get().getConteudo();
-            tipoArquivo = this.arquivoRepository.findById(pagamento.getComprovante().getArquivo()).get().getTipo();
+        if (consulta.getPagamento() == null) return null;
+        if (!consulta.getPagamento().getTipoPagamento().equals(TipoPagamentoEnum.PIX)) {
+            return new PagamentoConsultaDto(consulta.getPagamento());
+        } else {
+            try {
+                MercadoPagoDto.OrderResponse informacoesPagamento = this.pagamentoService.buscarPagamentoPix(consulta.getPagamento().getId());
+                PagamentoDto.PagamentoPixResponse respostaPix = this.pagamentoService.getPagamentoPixResponse(informacoesPagamento, consulta.getPagamento());
+                return new PagamentoConsultaDto(consulta.getPagamento(), respostaPix);
+            } catch (Exception e) {
+                log.error("Ocorreu um erro ao buscar os detalhes do pagamento via PIX dessa consulta! {}", idConsulta);
+            }
+            return null;
         }
-        return new PagamentoDto(consulta.getPagamento(), comprovante, tipoArquivo);
     }
 
     @Override

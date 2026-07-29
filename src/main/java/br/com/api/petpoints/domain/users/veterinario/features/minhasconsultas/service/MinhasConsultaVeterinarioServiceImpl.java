@@ -11,19 +11,26 @@ import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
+import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.models.ConsultaModel;
+import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
+import br.com.api.petpoints.shared.repository.PagamentoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeterinarioService {
@@ -32,6 +39,8 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final ConsultaRepository consultaRepository;
     private final LogsServiceImpl logsService;
     private final NotificacoesController notificacoesController;
+    private final PagamentoService pagamentoService;
+    private final PagamentoRepository pagamentoRepository;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -96,8 +105,25 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         consulta.setFinalizadoEm(LocalDateTime.now());
         consulta.setResumoConsulta(resumo);
         consulta = this.consultaRepository.save(consulta);
-        this.logsService.registrarLog(this.getUsuarioPorId(idUsuario), TipoLogEnum.CONSULTA_FINALIZADA);
+        log.info("Consulta finalizada com sucesso: ID {} - {}", idConsulta, LocalDateTime.now());
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
+        this.logsService.registrarLog(cliente, TipoLogEnum.CONSULTA_FINALIZADA);
         this.enviarNotificacaoCliente(consulta);
+        log.info("Notificações enviadas para cliente!");
+        PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
+                BigDecimal.valueOf(consulta.getTipoConsulta().getValor()),
+                "Pagamento Referente a consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
+                consulta.getSolicitante().getEmail(),
+                consulta.getSolicitante().getNome(),
+                "CONSULTA_ID_" + consulta.getId(),
+                consulta.getSolicitante().getCpf()
+        );
+        PagamentoDto.PagamentoPixResponse pagamentoPixResponse = this.pagamentoService.criarPagamentoPix(formPagamento, cliente);
+        ConsultaModel finalConsulta = consulta;
+        this.pagamentoRepository.findById(pagamentoPixResponse.pagamentoId()).ifPresent(pagamento -> {
+            finalConsulta.setPagamento(pagamento);
+            this.consultaRepository.save(finalConsulta);
+        });
     }
 
     private void enviarNotificacaoCliente(ConsultaModel consulta) {

@@ -24,7 +24,7 @@ public interface MinhasConsultasClienteService {
     List<VeterinariosTipoConsultaDto> listarVeterinariosTipoConsulta(Long idTipoConsulta);
     List<DiaConsultasVeterinarioDto> buscarDiasHorariosDisponiveisVeterinario(Long idVeterinario);
     List<OpcoesPetConsultasDto> buscarPetsConsulta(Long idUsuario);
-    PagamentoDto buscarPagamentoConsulta(Long idConsulta);
+    PagamentoConsultaDto buscarPagamentoConsulta(Long idConsulta);
     void registrarComprovante(Long idConsulta, Long idUsuario, MultipartFile comprovante);
     void alterarFormaPagamentoConsulta(Long idConsulta, TipoPagamentoEnum formaPagamento);
     AvaliacaoConsultaDto buscarAvaliacaoPorConsulta(Long idUsuario, Long idConsulta);

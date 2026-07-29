@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -18,7 +19,7 @@ import java.util.UUID;
 public class InformacoesPagamentoDto {
 
     private Long id;
-    private double valor;
+    private BigDecimal valor;
     private String dataLimite;
     private String enviadoEm;
     private UUID comprovante;
