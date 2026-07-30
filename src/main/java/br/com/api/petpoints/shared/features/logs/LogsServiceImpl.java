@@ -55,6 +55,7 @@ public class LogsServiceImpl implements LogsService {
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Cancelou uma consulta!";
             case EDITOU_TIPO_CONSULTA ->
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Editou as informações de um tipo de consulta!";
+            case ADICIONOU_CLIENTE -> usuario.getNome() + " registrou um novo cliente.";
             default -> "Ação Efetuada - Não Registrada";
         };
     }

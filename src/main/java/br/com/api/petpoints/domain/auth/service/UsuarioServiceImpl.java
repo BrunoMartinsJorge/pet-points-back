@@ -7,7 +7,8 @@ import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.domain.auth.forms.LoginForm;
 import br.com.api.petpoints.domain.auth.repository.TokenRecuperarSenhaRepository;
 import br.com.api.petpoints.domain.auth.exception.UsuarioJaCadastrado;
-import br.com.api.petpoints.domain.auth.forms.RegistroForm;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
+import br.com.api.petpoints.shared.form.RegistroForm;
 import br.com.api.petpoints.domain.auth.model.TokenRecuperarSenhaModel;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
@@ -101,7 +102,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         String token = tokenService.gerarToken((UsuarioModel) Objects.requireNonNull(auth.getPrincipal()));
         UsuarioModel usuario = (UsuarioModel) auth.getPrincipal();
         if (usuario.getStatusPerfilEnum().equals(StatusPerfilEnum.D))
-            throw new RuntimeException("Seu perfil foi desabilitado. Por favor solicite por email uma reativação!");
+            throw new IllegalAccessException("Seu perfil foi desabilitado. Por favor solicite por email uma reativação!");
         logsService.registrarLog(
                 usuario,
                 TipoLogEnum.LOGIN

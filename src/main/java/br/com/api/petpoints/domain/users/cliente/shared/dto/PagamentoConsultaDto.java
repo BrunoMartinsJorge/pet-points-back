@@ -1,4 +1,4 @@
-package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto;
+package br.com.api.petpoints.domain.users.cliente.shared.dto;
 
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;

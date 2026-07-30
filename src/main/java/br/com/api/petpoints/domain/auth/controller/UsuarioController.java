@@ -2,10 +2,13 @@ package br.com.api.petpoints.domain.auth.controller;
 
 import br.com.api.petpoints.domain.auth.dto.TokenDto;
 import br.com.api.petpoints.domain.auth.forms.LoginForm;
-import br.com.api.petpoints.domain.auth.forms.RegistroForm;
+import br.com.api.petpoints.shared.form.RegistroForm;
 import br.com.api.petpoints.domain.auth.service.UsuarioServiceImpl;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.models.ArquivosModel;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -19,11 +22,19 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/autenticacao")
 @RequiredArgsConstructor
+@Tag(name = "Usuário Autenticação Controller", description = "Endpoints para Registrar Clientes, Logar Clientes e Registrar uma nova senha ao usuário") // Groups endpoints
 public class UsuarioController {
 
     private final UsuarioServiceImpl usuarioService;
 
     @PostMapping("/login")
+    @Operation(
+            summary = "Loga o usuário por Email e Senha",
+            description = "Busca o usuário com base no seu login(email + senha-encriptada) e retorna uma Token JWT"
+    )
+    @ApiResponse(responseCode = "200", description = "Usuário encontrado")
+    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    @ApiResponse(responseCode = "405", description = "Usuário com conta desativada")
     public ResponseEntity<Object> logarUsuario(@RequestBody @Valid LoginForm form) {
         return ResponseEntity.ok(usuarioService.logarUsuario(form));
     }

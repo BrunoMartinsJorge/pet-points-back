@@ -2,6 +2,7 @@ package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.contr
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
+import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
@@ -12,7 +13,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -102,12 +102,6 @@ public class MinhasConsultasClienteController {
     @GetMapping("/{idConsulta}")
     public ResponseEntity<MinhasConsultasDto> buscarConsultaPorId(@PathVariable Long idConsulta) {
         return ResponseEntity.ok().body(this.minhasConsultasClienteServiceImpl.buscarConsultaPorId(idConsulta));
-    }
-
-    @PostMapping("/registrar-comprovante/{idConsulta}")
-    public ResponseEntity<Void> registrarComprovanteConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestParam MultipartFile arquivo) {
-        this.minhasConsultasClienteServiceImpl.registrarComprovante(idConsulta, this.idUsuario(request), arquivo);
-        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/alterar-forma-pagamento/{idConsulta}/{formaPagamento}")

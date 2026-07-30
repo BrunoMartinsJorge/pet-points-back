@@ -2,7 +2,7 @@ package br.com.api.petpoints.domain.auth.service;
 
 import br.com.api.petpoints.domain.auth.dto.TokenDto;
 import br.com.api.petpoints.domain.auth.forms.LoginForm;
-import br.com.api.petpoints.domain.auth.forms.RegistroForm;
+import br.com.api.petpoints.shared.form.RegistroForm;
 import br.com.api.petpoints.shared.models.ArquivosModel;
 import jakarta.mail.MessagingException;
 import org.springframework.web.multipart.MultipartFile;

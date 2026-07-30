@@ -6,6 +6,7 @@ import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.Det
 import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.PagamentosDto;
 import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.service.MeusPagamentosServiceImpl;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
+import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class MeusPagamentosController {
     }
 
     @GetMapping("/{idPagamento}")
-    public ResponseEntity<PagamentosDto> buscarPagamentoPorId(@PathVariable Long idPagamento) {
+    public ResponseEntity<PagamentoConsultaDto> buscarPagamentoPorId(@PathVariable Long idPagamento) {
         return ResponseEntity.ok().body(this.meusPagamentosService.buscarPagamentoPorId(idPagamento));
     }
 
@@ -51,20 +52,14 @@ public class MeusPagamentosController {
         return ResponseEntity.ok().body(this.meusPagamentosService.listarHistoricoPagamentos(token.getIdUsuario()));
     }
 
-    @GetMapping("/detalhes-pagamento/{idPagamento}")
-    public ResponseEntity<DetalhesPagamentoDto> buscarDetalhesPagamento(@PathVariable Long idPagamento) {
+    /*@GetMapping("/detalhes-pagamento/{idPagamento}")
+    public ResponseEntity<PagamentoConsultaDto> buscarDetalhesPagamento(@PathVariable Long idPagamento) {
         return ResponseEntity.ok().body(this.meusPagamentosService.buscarDetalhesPagamentoAtendente(idPagamento));
-    }
+    }*/
 
     @GetMapping("/consulta-pagamento/{idConsulta}")
     public ResponseEntity<MinhasConsultasDto> buscarDetalhesConsultaPagamento(@PathVariable Long idConsulta) {
         return ResponseEntity.ok().body(this.meusPagamentosService.buscarInformacoesConsultaPagamento(idConsulta));
-    }
-
-    @PostMapping("/registrar-comprovante/{idPagamento}")
-    public ResponseEntity<Void> registrarComprovante(@PathVariable Long idPagamento, @RequestParam MultipartFile arquivo) {
-        this.meusPagamentosService.registrarNovoComprovante(idPagamento, arquivo);
-        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/alterar-forma-pagamento/{idPagamento}/{novaForm}")

@@ -6,6 +6,7 @@ import br.com.api.petpoints.shared.features.payment.service.MercadoPagoService;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,32 +16,23 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pagamentos")
+@RequiredArgsConstructor
 public class PagamentoController {
 
     private final PagamentoService pagamentoService;
     private final MercadoPagoService mercadoPagoService;
 
-    public PagamentoController(PagamentoService pagamentoService,
-                               MercadoPagoService mercadoPagoService) {
-        this.pagamentoService = pagamentoService;
-        this.mercadoPagoService = mercadoPagoService;
-    }
-
-    /** Cria um pagamento PIX e devolve o QR Code para exibir ao cliente. */
-    @PostMapping("/pix")
-    public ResponseEntity<PagamentoDto.PagamentoPixResponse> criarPix(
-            @RequestBody @Valid PagamentoDto.CriarPagamentoPixForm form) {
-        PagamentoDto.PagamentoPixResponse resposta = pagamentoService.criarPagamentoPix(form);
-        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
-    }
-
-    /** Consulta (e atualiza) o status de um pagamento pelo id interno. */
+    /**
+     * Endpoint que consulta (e atualiza) o status de um pagamento pelo id interno.
+     *
+     * @param id - Long - Id pagamento selecionado
+     * @return - PagamentoDto.StatusPagamentoResponse - Status do pagamento
+     */
     @GetMapping("/{id}/status")
     public ResponseEntity<PagamentoDto.StatusPagamentoResponse> consultarStatus(@PathVariable Long id) {
         return ResponseEntity.ok(pagamentoService.consultarStatus(id));
     }
 
-    /** Lista os métodos de pagamento disponíveis no Mercado Pago. */
     @GetMapping("/metodos")
     public ResponseEntity<List<MercadoPagoDto.PaymentMethodInfo>> listarMetodos(
             @RequestParam(defaultValue = "PIX") String marketplace) {
@@ -48,9 +40,10 @@ public class PagamentoController {
     }
 
     /**
-     * Endpoint que o Mercado Pago chama quando o status muda (webhook).
-     * Deve responder 200 rápido; a lógica pesada, se crescer, deveria ser assíncrona.
-     * Cadastre esta URL no painel do MP OU envie "notification_url" na criação da order.
+     * Enpoint para Webhook do Mercado Pago que alerta sobre pagamentos efetuados
+     *
+     * @param notificacao - MercadoPagoDto.WebhookNotification - Informações do pagamento atualizado
+     * @return Resposta de sucesso OK 200 ao finalizar normalmente a alteração
      */
     @PostMapping("/webhook")
     public ResponseEntity<Void> webhook(@RequestBody(required = false) MercadoPagoDto.WebhookNotification notificacao) {
@@ -67,7 +60,6 @@ public class PagamentoController {
 
     @ExceptionHandler(MercadoPagoService.MercadoPagoException.class)
     public ResponseEntity<Map<String, String>> erroMercadoPago(MercadoPagoService.MercadoPagoException e) {
-        // 502: o problema veio de um serviço externo (o MP), não do cliente.
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("erro", e.getMessage()));
     }
 }

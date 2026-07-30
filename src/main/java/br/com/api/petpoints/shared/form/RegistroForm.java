@@ -1,14 +1,16 @@
-package br.com.api.petpoints.domain.auth.forms;
+package br.com.api.petpoints.shared.form;
 
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.validator.constraints.br.CPF;
 
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class RegistroForm {

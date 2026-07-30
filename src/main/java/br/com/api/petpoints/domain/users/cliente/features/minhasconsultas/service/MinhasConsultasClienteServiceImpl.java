@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
+import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
@@ -236,30 +237,6 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     @Transactional
-    public void registrarComprovante(Long idConsulta, Long idUsuario, MultipartFile file) {
-        PagamentoModel pagamento = this.getConsultaPorId(idConsulta)
-                .getPagamento();
-        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
-        ComprovanteModel comprovante = pagamento.getComprovante();
-        UUID novoArquivo = this.salvarArquivo(file);
-        if (comprovante == null) {
-            comprovante = new ComprovanteModel(novoArquivo);
-        } else {
-            UUID arquivoAntigo = comprovante.getArquivo();
-            comprovante.setArquivo(novoArquivo);
-            if (arquivoAntigo != null) {
-                this.arquivoRepository.deleteById(arquivoAntigo);
-            }
-        }
-        pagamento.setEmitidoPor(usuario);
-        comprovante = this.comprovanteRepository.save(comprovante);
-        pagamento.setComprovante(comprovante);
-        pagamento.setStatusPagamento(StatusPagamentoEnum.ENVIADO);
-        this.pagamentoRepository.save(pagamento);
-    }
-
-    @Override
-    @Transactional
     public void alterarFormaPagamentoConsulta(Long idConsulta, TipoPagamentoEnum formaPagamento) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() == StatusConsultaEnum.CANCELADO || consulta.getStatus() == StatusConsultaEnum.REPROVADA)
@@ -267,14 +244,6 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         if (consulta.getPagamento().getStatusPagamento() == StatusPagamentoEnum.APROVADO)
             throw new RuntimeException("O pagamento já foi aprovado, a forma de pagamento não pode ser alterada!");
         consulta.getPagamento().setTipoPagamento(formaPagamento);
-        ComprovanteModel comprovante = consulta.getPagamento().getComprovante();
-        if (comprovante != null) {
-            UUID arquivo = comprovante.getArquivo();
-            if (arquivo != null)
-                this.arquivoRepository.deleteById(arquivo);
-            this.comprovanteRepository.delete(comprovante);
-        }
-        consulta.getPagamento().setComprovante(null);
         consulta.getPagamento().setStatusPagamento(StatusPagamentoEnum.PENDENTE);
         this.consultaRepository.save(consulta);
     }

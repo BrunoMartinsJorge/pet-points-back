@@ -69,8 +69,8 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
         consulta.setStatus(StatusConsultaEnum.APROVADA);
         consulta.setAtendente(atendente);
         consulta.setDeferidoEm(LocalDateTime.now());
-        this.logsService.registrarLog(atendente, TipoLogEnum.DEFERIU_CONSULTA);
         consulta = consultaRepository.save(consulta);
+        this.logsService.registrarLog(atendente, TipoLogEnum.DEFERIU_CONSULTA);
         this.enviarNotificacaoClienteVeterinario(consulta);
         log.debug("Aprovação de consulta concluida!");
     }
@@ -86,8 +86,8 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
         consulta.setAtendente(atendente);
         consulta.setDeferidoEm(LocalDateTime.now());
         consulta.setMotivoIndeferimento(form.getMotivo());
-        this.logsService.registrarLog(atendente, TipoLogEnum.INDEFERIU_CONSULTA);
         consulta = consultaRepository.save(consulta);
+        this.logsService.registrarLog(atendente, TipoLogEnum.INDEFERIU_CONSULTA);
         this.enviarNotificacaoClienteVeterinario(consulta);
         log.debug("Indeferimento de consulta concluida!");
     }
@@ -177,7 +177,6 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
             }
         }
     }
-
 
     @Override
     public ConsultasAtendenteDto buscarConsultaPorId(Long idUsuario, Long idConsulta) {

@@ -21,8 +21,8 @@ public class InformacoesPagamentoDto {
     private Long id;
     private BigDecimal valor;
     private String dataLimite;
-    private String enviadoEm;
-    private UUID comprovante;
+    // private String enviadoEm;
+    // private UUID comprovante;
     private TipoPagamentoEnum formaPagamento;
     private String motivoIndeferimento;
     private StatusPagamentoEnum status;
@@ -31,10 +31,10 @@ public class InformacoesPagamentoDto {
         this.id = pagamento.getId();
         this.valor = pagamento.getValorPagamento();
         this.dataLimite = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataLimitePagamento());
-        this.comprovante = pagamento.getComprovante() != null ? pagamento.getComprovante().getArquivo() : null;
+        // this.comprovante = pagamento.getComprovante() != null ? pagamento.getComprovante().getArquivo() : null;
         this.motivoIndeferimento = pagamento.getMotivoIndeferimento();
         this.formaPagamento = pagamento.getTipoPagamento();
         this.status = pagamento.getStatusPagamento();
-        this.enviadoEm = pagamento.getComprovante() != null ? LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getComprovante().getEnviadoEm()) : null;
+        // this.enviadoEm = pagamento.getComprovante() != null ? LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getComprovante().getEnviadoEm()) : null;
     }
 }
