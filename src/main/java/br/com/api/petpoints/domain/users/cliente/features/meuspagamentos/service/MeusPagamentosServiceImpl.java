@@ -5,14 +5,19 @@ import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.Car
 import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.DetalhesPagamentoDto;
 import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.PagamentosDto;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
+import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
+import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
+import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MeusPagamentosServiceImpl implements MeusPagamentosService {
@@ -30,6 +36,7 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
     private final UsuarioRepository usuarioRepository;
     private final ArquivoRepository arquivoRepository;
     private final ComprovanteRepository comprovanteRepository;
+    private final PagamentoService pagamentoService;
 
     private UsuarioModel getUsuarioPorId(Long idUsuario) {
         return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
@@ -71,68 +78,36 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
     }
 
     @Override
-    public DetalhesPagamentoDto buscarDetalhesPagamentoAtendente(Long idPagamento) {
-        PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
-        ArquivosModel comprovante = null;
-        if (pagamento.getComprovante() != null && pagamento.getComprovante().getArquivo() != null)
-            comprovante = this.arquivoRepository.findById(pagamento.getComprovante().getArquivo()).orElse(null);
-        return new DetalhesPagamentoDto(pagamento, comprovante);
-    }
-
-    @Override
     public MinhasConsultasDto buscarInformacoesConsultaPagamento(Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         return new MinhasConsultasDto(consulta);
     }
-
-    @Override
-    @Transactional
-    public void registrarNovoComprovante(Long idPagamento, MultipartFile comprovante) {
-        PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
-        ComprovanteModel comprovantePagamento = pagamento.getComprovante();
-        if (comprovante != null && !comprovante.isEmpty()) {
-            if (comprovantePagamento != null) {
-                UUID imagemAntiga = comprovantePagamento.getArquivo();
-                UUID novaImagem = this.salvarArquivo(comprovante);
-                comprovantePagamento.setArquivo(novaImagem);
-                if (imagemAntiga != null) {
-                    this.arquivoRepository.deleteById(imagemAntiga);
-                }
-            } else {
-                comprovantePagamento = new ComprovanteModel();
-                UUID arquivo = this.salvarArquivo(comprovante);
-                comprovantePagamento.setArquivo(arquivo);
-                pagamento.setComprovante(comprovantePagamento);
-            }
-        }
-        pagamento.setStatusPagamento(StatusPagamentoEnum.ENVIADO);
-        this.pagamentoRepository.save(pagamento);
-    }
-
     @Override
     @Transactional
     public void alterarFormaPagamento(Long idPagamento, TipoPagamentoEnum novaForma) {
         PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
         if (pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO)
             throw new RuntimeException("O pagamento já foi aprovado, então não pode mais receber alterações!");
-        if (pagamento.getComprovante() != null) {
-            if (pagamento.getComprovante().getArquivo() != null) {
-                this.arquivoRepository.deleteById(pagamento.getComprovante().getArquivo());
-            }
-            this.comprovanteRepository.delete(pagamento.getComprovante());
-            pagamento.setComprovante(null);
-        }
         pagamento.setTipoPagamento(novaForma);
         pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
         this.pagamentoRepository.save(pagamento);
     }
 
     @Override
-    public PagamentosDto buscarPagamentoPorId(Long idPagamento) {
-        ConsultaModel consulta = this.consultaRepository.findByPagamento_Id(idPagamento).orElseThrow(() -> new ObjectNotFoundException(
-                "Pagamento com ID: " + idPagamento + " não encontrado!"
-        ));
-        return new PagamentosDto(consulta);
+    public PagamentoConsultaDto buscarPagamentoPorId(Long idPagamento) {
+        PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
+        if (!pagamento.getTipoPagamento().equals(TipoPagamentoEnum.PIX)) {
+            return new PagamentoConsultaDto(pagamento);
+        } else {
+            try {
+                MercadoPagoDto.OrderResponse informacoesPagamento = this.pagamentoService.buscarPagamentoPix(pagamento.getId());
+                PagamentoDto.PagamentoPixResponse respostaPix = this.pagamentoService.getPagamentoPixResponse(informacoesPagamento, pagamento);
+                return new PagamentoConsultaDto(pagamento, respostaPix);
+            } catch (Exception e) {
+                log.error("Ocorreu um erro ao buscar os detalhes do pagamento via PIX desse pagamento! {}", idPagamento);
+            }
+            return null;
+        }
     }
 
     private UUID salvarArquivo(MultipartFile form) {

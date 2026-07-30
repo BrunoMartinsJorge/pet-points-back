@@ -61,10 +61,6 @@ public class UsuariosPadroes implements CommandLineRunner {
                 "Marizinha", "cliente@gmail.com",
                 GeneroEnum.F, "1980-10-16", "18996738459", "60099673096", TipoUsuario.C));
 
-        criados.put("cliente_pagamento", salvarUsuario(
-                "Cliente Pagamento", "test_user_1724857044@testuser.com",
-                GeneroEnum.F, "1980-10-16", "18996738459", "19119119100", TipoUsuario.C));
-
         pet(criados.get("cliente"));
 
         criados.put("cliente_pagamento", salvarUsuario(

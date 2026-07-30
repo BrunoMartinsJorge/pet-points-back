@@ -35,7 +35,10 @@ public class SecurityFilter extends OncePerRequestFilter {
                 "/autenticacao/register",
                 "/autenticacao/enviar-codigo-alterar-senha",
                 "/autenticacao/validar-codigo-alterar-senha",
-                "/autenticacao/redefinir-senha"
+                "/autenticacao/redefinir-senha",
+                "/v3/api-docs",
+                "/swagger-ui",
+                "/swagger-ui.html"
         );
         if (path.contains("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem") || path.startsWith("/pagamentos")) {
             filterChain.doFilter(request, response);

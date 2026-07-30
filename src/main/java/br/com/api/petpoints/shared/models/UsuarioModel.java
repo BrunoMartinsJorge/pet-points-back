@@ -1,7 +1,7 @@
 package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
-import br.com.api.petpoints.domain.auth.forms.RegistroForm;
+import br.com.api.petpoints.shared.form.RegistroForm;
 import br.com.api.petpoints.domain.users.gerente.features.funcionarios.forms.FuncionarioForm;
 import br.com.api.petpoints.shared.enums.GeneroEnum;
 import br.com.api.petpoints.shared.enums.StatusPerfilEnum;

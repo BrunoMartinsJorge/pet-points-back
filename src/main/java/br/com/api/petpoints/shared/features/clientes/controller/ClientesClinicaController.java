@@ -1,5 +1,6 @@
 package br.com.api.petpoints.shared.features.clientes.controller;
 
+import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.gerente.features.pets.form.RelatorioPetsClinicaForm;
 import br.com.api.petpoints.shared.features.clientes.dto.ClienteDto;
 import br.com.api.petpoints.shared.features.clientes.dto.ClientesDetalhesDto;
@@ -7,6 +8,9 @@ import br.com.api.petpoints.shared.features.clientes.dto.HistoricoConsultasClien
 import br.com.api.petpoints.shared.features.clientes.dto.PetsClienteDto;
 import br.com.api.petpoints.shared.features.clientes.forms.RelatorioClienteClinicaForm;
 import br.com.api.petpoints.shared.features.clientes.service.ClientesClinicaServiceImpl;
+import br.com.api.petpoints.shared.form.RegistroForm;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,8 +27,12 @@ public class ClientesClinicaController {
     private final ClientesClinicaServiceImpl clientesClinicaService;
 
     @GetMapping
-    public ResponseEntity<List<ClienteDto>> listarClientes(){
+    public ResponseEntity<List<ClienteDto>> listarClientes() {
         return ResponseEntity.ok().body(this.clientesClinicaService.listarClientesClinica());
+    }
+
+    private Long getIdUsuario(HttpServletRequest request) {
+        return new TokenModel(request.getHeader("Authorization")).getIdUsuario();
     }
 
     @GetMapping("/detalhes/{idCliente}")
@@ -40,6 +48,12 @@ public class ClientesClinicaController {
     @GetMapping("/pets-cliente/{idCliente}")
     public ResponseEntity<List<PetsClienteDto>> buscarPetsClientePorId(@PathVariable Long idCliente) {
         return ResponseEntity.ok().body(this.clientesClinicaService.listarPetsCliente(idCliente));
+    }
+
+    @PostMapping("/registrar-cliente")
+    public ResponseEntity<Void> registrarNovoCliente(@RequestBody @Valid RegistroForm form, HttpServletRequest request) {
+        this.clientesClinicaService.registrarCliente(this.getIdUsuario(request), form);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/relatorios")

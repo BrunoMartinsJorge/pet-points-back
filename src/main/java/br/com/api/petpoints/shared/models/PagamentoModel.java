@@ -58,10 +58,6 @@ public class PagamentoModel {
     @Column(name = "tipo_pagamento", nullable = false)
     private TipoPagamentoEnum tipoPagamento;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "comprovante_id")
-    private ComprovanteModel comprovante;
-
     @Column(name = "motivo_indeferimento", length = 500)
     private String motivoIndeferimento;
 
