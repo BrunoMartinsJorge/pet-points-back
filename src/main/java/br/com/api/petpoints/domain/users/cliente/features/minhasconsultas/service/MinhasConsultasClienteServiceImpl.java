@@ -3,6 +3,7 @@ package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.servi
 import br.com.api.petpoints.domain.users.atendente.features.consultas.service.ConsultasAtendenteServiceImpl;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.ReagendamentoConsultaForm;
+import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
 import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
