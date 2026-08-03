@@ -21,7 +21,7 @@ public class ConsultasScheduling {
     private final ConsultaRepository consultaRepository;
     private final PagamentoService pagamentoService;
 
-    @Scheduled(cron = "0 45 0 0 0 0")
+    @Scheduled(cron = "0 45 * * * *")
     public void taskPagamentosAtrasados() {
         List<ConsultaModel> consultas = consultaRepository.findAllByStatus(StatusConsultaEnum.FINALIZADO);
         if (!consultas.isEmpty()) {
