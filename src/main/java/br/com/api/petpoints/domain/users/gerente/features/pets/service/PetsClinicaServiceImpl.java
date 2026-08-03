@@ -2,8 +2,11 @@ package br.com.api.petpoints.domain.users.gerente.features.pets.service;
 
 import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.domain.users.gerente.features.pets.dto.*;
+import br.com.api.petpoints.domain.users.gerente.features.pets.form.NovoPetForm;
 import br.com.api.petpoints.domain.users.gerente.features.pets.form.RelatorioPetsClinicaForm;
 import br.com.api.petpoints.shared.dto.CarteirinhaDto;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.models.ArquivosModel;
 import br.com.api.petpoints.shared.models.ConsultaModel;
@@ -16,6 +19,7 @@ import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.ColunaRelatorio;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import br.com.api.petpoints.shared.utils.RelatoriosUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
@@ -116,5 +120,20 @@ public class PetsClinicaServiceImpl implements PetsClinicaService {
     public ArquivosModel buscarImagemPet(Long id) {
         UUID uuid = this.petRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Pet não encontrado!")).getImagem();
         return this.arquivoRepository.findById(uuid).orElseThrow(() -> new ObjectNotFoundException("Arquivo não encontrado!"));
+    }
+
+    @Transactional
+    public void registrarNovoPet(NovoPetForm form) {
+        UsuarioModel cliente = this.usuarioRepository.findById(form.getIdTutor()).orElseThrow(() -> new ObjectNotFoundException("Tutor com ID: " + form.getIdTutor() + " não encontrado!"));
+        if (cliente.getStatusPerfilEnum().equals(StatusPerfilEnum.D)) throw new IllegalAccessException("Perfil de tutor com ID: " + form.getIdTutor() + " desativado!");
+        PetModel pet = new PetModel();
+        pet.setNome(form.getNome());
+        pet.setGenero(form.getGenero());
+        pet.setTipo(form.getTipo());
+        pet.setTutor(cliente);
+        pet.setDataNascimento(form.getDataNascimento());
+        pet.setObservacoes(form.getObservacoes());
+        pet.setRaca(form.getRaca());
+        this.petRepository.save(pet);
     }
 }

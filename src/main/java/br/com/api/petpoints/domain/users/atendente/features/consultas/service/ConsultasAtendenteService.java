@@ -17,6 +17,6 @@ public interface ConsultasAtendenteService {
     List<ConsultasAtendenteDto> listarConsultasComPagamentosPendentesDoCliente(Long idCliente);
     InformacoesPagamentoDto buscarInformacoesPagamento(Long idConsulta);
     AvaliacaoConsultaDto buscarAvaliacao(Long idConsulta);
-    void avaliarPagamento(Long idConsulta, IndeferirPagamentoForm form);
+    void avaliarPagamento(Long idConsulta, IndeferirPagamentoForm form, Long idAtendente);
     ConsultasAtendenteDto buscarConsultaPorId(Long idUsuario, Long idConsulta);
 }

@@ -12,8 +12,7 @@ public enum StatusPagamentoEnum implements Serializable {
     REPROVADO("Reprovado"),
     CANCELADO("Cancelado"),
     DEVOLVIDO("Devolvido"),
-    RECUSADO("Recusado"),
-    PAGO("Pago");
+    RECUSADO("Recusado");
 
     private final String descricao;
     StatusPagamentoEnum(String descricao) {

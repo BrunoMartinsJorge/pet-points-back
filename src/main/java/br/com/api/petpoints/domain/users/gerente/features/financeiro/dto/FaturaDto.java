@@ -43,7 +43,6 @@ public class FaturaDto {
 
     private static String calcularStatus(PagamentoModel pagamento) {
         return switch (pagamento.getStatusPagamento()) {
-            case PAGO -> "PAGO";
             case APROVADO -> "APROVADO";
             case REPROVADO -> "REPROVADO";
             case CANCELADO -> "CANCELADO";

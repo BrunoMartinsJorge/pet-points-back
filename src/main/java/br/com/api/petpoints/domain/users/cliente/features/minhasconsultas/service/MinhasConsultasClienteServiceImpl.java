@@ -1,7 +1,11 @@
 package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service;
 
+import br.com.api.petpoints.domain.users.atendente.features.consultas.service.ConsultasAtendenteServiceImpl;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
-import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.ReagendamentoConsultaForm;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
+import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
+import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
@@ -15,6 +19,7 @@ import br.com.api.petpoints.shared.exception.custom.PerfilDesativadoException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
+import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +44,16 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     private final PetRepository petRepository;
     private final TipoConsultaRepository tipoConsultaRepository;
     private final LogsServiceImpl logsService;
-    private final PagamentoRepository pagamentoRepository;
     private final EspecializacaoRepository especializacaoRepository;
-    private final ArquivoRepository arquivoRepository;
-    private final ComprovanteRepository comprovanteRepository;
     private final AvaliacaoRepository avaliacaoRepository;
     private final PagamentoService pagamentoService;
+    private final NotificacoesController notificacoesController;
+
+    private static final List<LocalTime> HORARIOS_FUNCIONAMENTO = List.of(
+            LocalTime.of(8, 0), LocalTime.of(9, 0), LocalTime.of(10, 0), LocalTime.of(11, 0),
+            LocalTime.of(14, 0), LocalTime.of(15, 0), LocalTime.of(16, 0), LocalTime.of(17, 0),
+            LocalTime.of(18, 0), LocalTime.of(19, 0), LocalTime.of(20, 0)
+    );
 
     private UsuarioModel getUsuarioPorId(Long idUsuario) {
         return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com ID: " + idUsuario));
@@ -119,7 +128,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
     @Override
     @Transactional
     public void solicitarNovaConsulta(Long idUsuario, SolicitacaoConsultaForm form) {
-        this.validarSolicitacaoDeConsulta(idUsuario, form);
+        this.validarSolicitacaoDeConsulta(form);
         PetModel pet = this.getPetPorId(form.getIdPet());
         UsuarioModel solicitante = this.getUsuarioPorId(idUsuario);
         if (pet.getTutor() != solicitante) throw new RuntimeException("Esse Pet não é seu!");
@@ -132,17 +141,8 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         consulta.setVeterinario(veterinario);
         consulta.setTipoConsulta(tipoConsulta);
         consulta.setPet(pet);
-        // consulta.setPagamento(this.gerarFormaPagamento(tipoConsulta, form.getDataConsulta(), form.getFormaPagamento()));
+        consulta.setFormaPagamento(form.getFormaPagamento());
         this.consultaRepository.save(consulta);
-    }
-
-    @Transactional
-    protected PagamentoModel gerarFormaPagamento(TipoConsultaModel tipo, LocalDateTime dataConsulta, TipoPagamentoEnum tipoPagamento) {
-        PagamentoModel pagamento = new PagamentoModel();
-        pagamento.setDataLimitePagamento(dataConsulta);
-        pagamento.setTipoPagamento(tipoPagamento);
-        pagamento.setValorPagamento(BigDecimal.valueOf(tipo.getValor()));
-        return this.pagamentoRepository.save(pagamento);
     }
 
     @Override
@@ -150,7 +150,7 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
         ConsultaModel consulta = this.getConsultaPorId(form.getIdConsulta());
         if (consulta.getStatus() == StatusConsultaEnum.INICIADO || consulta.getStatus() == StatusConsultaEnum.FINALIZADO || consulta.getStatus() == StatusConsultaEnum.REPROVADA)
-            throw new RuntimeException("A solicita");
+            throw new IllegalAccessException("A solicitação não pode mais ser cancelada!");
         consulta.setStatus(StatusConsultaEnum.CANCELADO);
         consulta.setMotivoCancelamento(form.getMotivoCancelamento());
         consulta.setCanceladoEm(LocalDateTime.now());
@@ -237,15 +237,82 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
 
     @Override
     @Transactional
-    public void alterarFormaPagamentoConsulta(Long idConsulta, TipoPagamentoEnum formaPagamento) {
+    public void alterarFormaPagamentoConsulta(Long idUsuario, Long idConsulta, TipoPagamentoEnum formaPagamento) {
+        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
+        this.consultaPertenceCliente(consulta, cliente);
+
         if (consulta.getStatus() == StatusConsultaEnum.CANCELADO || consulta.getStatus() == StatusConsultaEnum.REPROVADA)
             throw new RuntimeException("A consulta não pode ser alterada devido seu estado atual!");
-        if (consulta.getPagamento().getStatusPagamento() == StatusPagamentoEnum.APROVADO)
-            throw new RuntimeException("O pagamento já foi aprovado, a forma de pagamento não pode ser alterada!");
-        consulta.getPagamento().setTipoPagamento(formaPagamento);
-        consulta.getPagamento().setStatusPagamento(StatusPagamentoEnum.PENDENTE);
+
+        PagamentoModel pagamento = consulta.getPagamento();
+
+        if (pagamento == null) {
+            consulta.setFormaPagamento(formaPagamento);
+            if (formaPagamento == TipoPagamentoEnum.PIX)
+                consulta.setPagamento(gerarCobrancaDaConsulta(consulta, consulta.getVeterinario()));
+            this.consultaRepository.save(consulta);
+            return;
+        }
+
+        boolean pixPagoEValido = pagamento.getTipoPagamento() == TipoPagamentoEnum.PIX
+                && pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO
+                && (pagamento.getDataLimitePagamento() == null || pagamento.getDataLimitePagamento().isAfter(LocalDateTime.now()));
+
+        boolean presencialJaAprovado = pagamento.getTipoPagamento() != TipoPagamentoEnum.PIX
+                && pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO;
+
+        if (pixPagoEValido)
+            throw new RuntimeException("O PIX já foi pago e ainda está válido, a forma de pagamento não pode ser alterada!");
+        if (presencialJaAprovado)
+            throw new RuntimeException("O pagamento já foi aprovado pelo atendente, a forma de pagamento não pode ser alterada!");
+
+        if (pagamento.getTipoPagamento() == TipoPagamentoEnum.PIX) {
+            this.pagamentoService.cancelarPagamentoPix(pagamento);
+        }
+
+        if (formaPagamento == TipoPagamentoEnum.PIX) {
+            PagamentoDto.CriarPagamentoPixForm form = new PagamentoDto.CriarPagamentoPixForm(
+                    pagamento.getValorPagamento(),
+                    "Pagamento referente à consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
+                    consulta.getSolicitante().getEmail(),
+                    consulta.getSolicitante().getNome(),
+                    "CONSULTA_ID_" + consulta.getId(),
+                    consulta.getSolicitante().getCpf()
+            );
+            this.pagamentoService.gerarCobrancaPix(pagamento, form, consulta.getVeterinario());
+        } else {
+            this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, pagamento.getValorPagamento(), consulta.getVeterinario());
+        }
+
+        consulta.setFormaPagamento(formaPagamento);
         this.consultaRepository.save(consulta);
+    }
+
+    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta, UsuarioModel veterinario) {
+        TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
+                ? consulta.getFormaPagamento()
+                : TipoPagamentoEnum.DINHEIRO;
+
+        BigDecimal valor = BigDecimal.valueOf(consulta.getTipoConsulta().getValor());
+        PagamentoModel pagamento = new PagamentoModel();
+
+        if (formaPagamento == TipoPagamentoEnum.PIX) {
+            PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
+                    valor,
+                    "Pagamento referente à consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
+                    consulta.getSolicitante().getEmail(),
+                    consulta.getSolicitante().getNome(),
+                    "CONSULTA_ID_" + consulta.getId(),
+                    consulta.getSolicitante().getCpf()
+            );
+            this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, veterinario);
+            return pagamento;
+        }
+
+        // Cartão (sem integração online) ou dinheiro: pagamento presencial,
+        // fica PENDENTE até o atendente confirmar o recebimento no balcão.
+        return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, veterinario);
     }
 
     @Override
@@ -277,34 +344,26 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
         return new MinhasConsultasDto(this.getConsultaPorId(idConsulta));
     }
 
+    @Override
+    @Transactional
+    public void reagendarConsulta(Long idUsuario, ReagendamentoConsultaForm form) {
+        ConsultaModel consulta = this.getConsultaPorId(form.getIdConsulta());
+        this.consultaPertenceCliente(consulta, this.getUsuarioPorId(idUsuario));
+        if (!consulta.getStatus().equals(StatusConsultaEnum.PENDENTE) && !consulta.getStatus().equals(StatusConsultaEnum.APROVADA))
+            throw new IllegalAccessException("O estado em que a consulta se encontra não pode receber reagendamentos!");
+        if (!HORARIOS_FUNCIONAMENTO.contains(form.getDataConsulta().toLocalTime()))
+            throw new IllegalAccessException("O horário informado para o reagendamento não consta na tabela de horários!");
+        consulta.setDataConsulta(form.getDataConsulta());
+        this.consultaRepository.save(consulta);
+        this.notificarReagendamento(consulta);
+    }
+
     private void consultaPertenceCliente(ConsultaModel consulta, UsuarioModel cliente) {
         if (!consulta.getSolicitante().equals(cliente))
             throw new RuntimeException("Você não pode acessar essa consulta!");
     }
 
-    private UUID salvarArquivo(MultipartFile form) {
-        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
-        List<String> tiposPermitidos = List.of(
-                "image/png",
-                "image/jpeg",
-                "application/pdf"
-        );
-        if (!tiposPermitidos.contains(form.getContentType()))
-            throw new RuntimeException("Tipo inválido");
-        ArquivosModel arquivo = new ArquivosModel();
-        try {
-            arquivo.setConteudo(form.getBytes());
-            arquivo.setNome(form.getOriginalFilename());
-            arquivo.setTipo(form.getContentType());
-            return this.arquivoRepository.save(arquivo).getId();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void validarSolicitacaoDeConsulta(Long idUsuario, SolicitacaoConsultaForm form) {
-        /*List<ConsultaModel> consultasPagamentosPendentes = this.consultaRepository.findAllBySolicitante_IdAndPagamentoIsNull(idUsuario).stream().filter(consulta -> consulta.getStatus() != StatusConsultaEnum.PENDENTE).toList();*/
-        // if (!consultasPagamentosPendentes.isEmpty()) throw new RuntimeException("Você ainda tem pagamentos pendentes!");
+    private void validarSolicitacaoDeConsulta(SolicitacaoConsultaForm form) {
         LocalDateTime dataSolicitada = form.getDataConsulta();
         List<ConsultaModel> consultasDoVeterinario =
                 this.consultaRepository
@@ -314,5 +373,45 @@ public class MinhasConsultasClienteServiceImpl implements MinhasConsultasCliente
                         )
                         .toList();
         if (!consultasDoVeterinario.isEmpty()) throw new RuntimeException("Já existe uma consulta nesse periodo!");
+    }
+
+    @Transactional
+    protected void notificarReagendamento(ConsultaModel consulta) {
+        NovaNotificacaoForm notificacao = new NovaNotificacaoForm(
+                consulta.getSolicitante().getId(),
+                "Reagendamento de Consulta",
+                "Reagendamento de consulta EFETUADO",
+                TiposNotificacoesEnum.CONSULTA
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de reagendamento de consulta enviada ao cliente!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de reagendamento de consulta ao cliente!");
+        }
+        notificacao = new NovaNotificacaoForm(
+                consulta.getVeterinario().getId(),
+                "Consulta Reagendada",
+                "Uma consulta com " + consulta.getSolicitante().getNome() + " em " + LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getDataConsulta()) + " foi reagendada!",
+                TiposNotificacoesEnum.CONSULTA
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de reagendamento de consulta enviada ao veterinário!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de reagendamento de consulta ao veterinário!");
+        }
+        notificacao = new NovaNotificacaoForm(
+                consulta.getVeterinario().getId(),
+                "Consulta Reagendada",
+                "Uma consulta com " + consulta.getSolicitante().getNome() + " e Dr(a) " + consulta.getVeterinario().getNome() + " em " + LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getDataConsulta()) + " foi reagendada!",
+                TiposNotificacoesEnum.CONSULTA
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de reagendamento de consulta enviada ao atendente!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de reagendamento de consulta ao atendente!");
+        }
     }
 }

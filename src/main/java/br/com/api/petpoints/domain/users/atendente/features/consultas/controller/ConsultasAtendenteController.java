@@ -63,8 +63,9 @@ public class ConsultasAtendenteController {
     }
 
     @PutMapping("/avaliar/{idConsulta}")
-    public ResponseEntity<Void> enviarAvaliacaoPagamento(@PathVariable Long idConsulta, @RequestBody IndeferirPagamentoForm form) {
-        this.consultasAtendenteService.avaliarPagamento(idConsulta, form);
+    public ResponseEntity<Void> enviarAvaliacaoPagamento(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody IndeferirPagamentoForm form) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        this.consultasAtendenteService.avaliarPagamento(idConsulta, form, token.getIdUsuario());
         return ResponseEntity.ok().build();
     }
 

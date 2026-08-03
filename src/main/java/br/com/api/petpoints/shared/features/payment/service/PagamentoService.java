@@ -2,14 +2,18 @@ package br.com.api.petpoints.shared.features.payment.service;
 
 import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
+import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
+import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
+import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.models.ConsultaModel;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.repository.ConsultaRepository;
 import br.com.api.petpoints.shared.repository.PagamentoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -21,40 +25,42 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PagamentoService {
 
     private final MercadoPagoService mercadoPagoService;
     private final PagamentoRepository pagamentoRepository;
+    private final ConsultaRepository consultaRepository;
+    private final NotificacoesController notificacoesController;
 
-    private PagamentoModel getPagamentoPorId(Long idPagamento) {
-        return pagamentoRepository.findById(idPagamento)
-                .orElseThrow(() -> {
-                    log.warn("Pagamento {} não encontrado.", idPagamento);
-                    return new EntityNotFoundException("Pagamento não encontrado: " + idPagamento);
-                });
+    public PagamentoService(MercadoPagoService mercadoPagoService,
+                            PagamentoRepository pagamentoRepository,
+                            ConsultaRepository consultaRepository,
+                            NotificacoesController notificacoesController) {
+        this.mercadoPagoService = mercadoPagoService;
+        this.pagamentoRepository = pagamentoRepository;
+        this.consultaRepository = consultaRepository;
+        this.notificacoesController = notificacoesController;
     }
 
     /**
-     * Cria uma cobrança PIX utilizando o Mercado Pago e persiste as informações
-     * do pagamento em banco de dados.
+     * Gera (ou regenera) uma cobrança PIX no Mercado Pago para um pagamento.
      * <p>
-     * O fluxo consiste em:
-     * <ol>
-     *     <li>Criar a ordem de pagamento no Mercado Pago;</li>
-     *     <li>Persistir o pagamento localmente;</li>
-     *     <li>Retornar os dados necessários para pagamento via PIX.</li>
-     * </ol>
+     * Aceita um {@link PagamentoModel} novo (ainda não persistido) ou já
+     * existente (quando o cliente troca a forma de pagamento de volta para
+     * PIX) — os campos são sobrescritos com os dados da nova ordem.
      *
-     * @param form Dados necessários para criação da cobrança.
-     *
-     * @return Informações da cobrança PIX.
+     * @param pagamento  Pagamento a ser atualizado com os dados do PIX.
+     * @param form       Dados necessários para criação da cobrança.
+     * @param emitidoPor Usuário responsável por emitir a cobrança (normalmente o veterinário/atendente).
+     * @return Informações da cobrança PIX (QR Code, etc.).
      */
     @Transactional
-    public PagamentoDto.PagamentoPixResponse criarPagamentoPix(PagamentoDto.CriarPagamentoPixForm form, UsuarioModel usuario) {
+    public PagamentoDto.PagamentoPixResponse gerarCobrancaPix(PagamentoModel pagamento,
+                                                              PagamentoDto.CriarPagamentoPixForm form,
+                                                              UsuarioModel emitidoPor) {
 
         log.info(
-                "Iniciando geração de pagamento PIX. Consulta: {}, CPF: {}, Valor: {}",
+                "Iniciando geração de pagamento PIX. Referência: {}, CPF: {}, Valor: {}",
                 form.externalReference(),
                 form.cpf(),
                 form.valor());
@@ -84,18 +90,19 @@ public class PagamentoService {
 
         MercadoPagoDto.OrderResponse order = mercadoPagoService.criarOrder(request);
 
-        log.info(
-                "Ordem criada no Mercado Pago. OrderId: {}, Status: {}",
-                order.id(),
-                order.status());
+        log.info("Ordem criada no Mercado Pago. OrderId: {}, Status: {}", order.id(), order.status());
 
-        PagamentoModel pagamento = new PagamentoModel();
         pagamento.setValorPagamento(form.valor());
         pagamento.setIdPagamentoExterno(order.id());
         pagamento.setTipoPagamento(TipoPagamentoEnum.PIX);
         pagamento.setStatusPagamento(mapearStatus(order.status()));
         pagamento.setDataLimitePagamento(LocalDateTime.now().plusWeeks(1));
-        pagamento.setEmitidoPor(usuario);
+        pagamento.setDataPagamento(null);
+        pagamento.setMotivoIndeferimento(null);
+        pagamento.setAprovadoPor(null);
+        if (emitidoPor != null) {
+            pagamento.setEmitidoPor(emitidoPor);
+        }
 
         return getPagamentoPixResponse(order, pagamento);
     }
@@ -122,13 +129,72 @@ public class PagamentoService {
     }
 
     /**
+     * Gera (ou regenera) uma cobrança presencial (dinheiro ou cartão sem integração
+     * online). Não há chamada ao Mercado Pago: o pagamento fica com status
+     * {@code PENDENTE} até que o atendente confirme o recebimento no balcão,
+     * através de {@code avaliarPagamento}.
+     *
+     * @param pagamento  Pagamento a ser atualizado.
+     * @param tipo       {@link TipoPagamentoEnum#DINHEIRO} ou {@link TipoPagamentoEnum#CARTAO}.
+     * @param valor      Valor da cobrança.
+     * @param emitidoPor Usuário responsável por emitir a cobrança (normalmente o veterinário/atendente).
+     * @return Pagamento persistido.
+     */
+    @Transactional
+    public PagamentoModel criarPagamentoPresencial(PagamentoModel pagamento,
+                                                   TipoPagamentoEnum tipo,
+                                                   BigDecimal valor,
+                                                   UsuarioModel emitidoPor) {
+
+        if (tipo == TipoPagamentoEnum.PIX) {
+            throw new IllegalArgumentException("Pagamento presencial não pode ser do tipo PIX.");
+        }
+
+        log.info("Gerando cobrança presencial ({}) no valor de {}.", tipo, valor);
+
+        pagamento.setValorPagamento(valor);
+        pagamento.setTipoPagamento(tipo);
+        pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
+        pagamento.setIdPagamentoExterno(null);
+        pagamento.setDataPagamento(null);
+        pagamento.setMotivoIndeferimento(null);
+        pagamento.setAprovadoPor(null);
+        pagamento.setEmitidoPor(emitidoPor);
+
+        return pagamentoRepository.save(pagamento);
+    }
+
+    /**
+     * Cancela, no Mercado Pago, uma ordem PIX ainda pendente. Usado quando o
+     * cliente troca a forma de pagamento antes de o PIX ser pago. Falhas de
+     * cancelamento (ex.: ordem já paga/expirada) são apenas registradas em log
+     * — quem chama este método já deve ter validado que o pagamento ainda não
+     * foi confirmado antes de permitir a troca.
+     *
+     * @param pagamento Pagamento cuja ordem externa deve ser cancelada.
+     */
+    @Transactional
+    public void cancelarPagamentoPix(PagamentoModel pagamento) {
+        if (pagamento.getIdPagamentoExterno() == null) {
+            return;
+        }
+        try {
+            mercadoPagoService.cancelarOrder(pagamento.getIdPagamentoExterno());
+        } catch (MercadoPagoService.MercadoPagoException e) {
+            log.warn(
+                    "Não foi possível cancelar a ordem {} no Mercado Pago (pode já estar paga ou expirada): {}",
+                    pagamento.getIdPagamentoExterno(),
+                    e.getMessage());
+        }
+    }
+
+    /**
      * Consulta o status atualizado de um pagamento.
      * <p>
      * A consulta é realizada tanto na base local quanto na API do Mercado Pago.
      * Caso o status tenha sido alterado, o registro local é atualizado.
      *
      * @param pagamentoId Identificador interno do pagamento.
-     *
      * @return Status atualizado do pagamento.
      */
     @Transactional
@@ -136,7 +202,11 @@ public class PagamentoService {
 
         log.info("Consultando status do pagamento {}.", pagamentoId);
 
-        PagamentoModel pagamento = this.getPagamentoPorId(pagamentoId);
+        PagamentoModel pagamento = pagamentoRepository.findById(pagamentoId)
+                .orElseThrow(() -> {
+                    log.warn("Pagamento {} não encontrado.", pagamentoId);
+                    return new EntityNotFoundException("Pagamento não encontrado: " + pagamentoId);
+                });
 
         MercadoPagoDto.OrderResponse order =
                 mercadoPagoService.buscarOrder(pagamento.getIdPagamentoExterno());
@@ -159,9 +229,13 @@ public class PagamentoService {
     }
 
     public MercadoPagoDto.OrderResponse buscarPagamentoPix(Long idPagamento) {
-        log.info("Consultando do pagamento {}.", idPagamento);
+        log.info("Consultando status do pagamento {}.", idPagamento);
 
-        PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
+        PagamentoModel pagamento = pagamentoRepository.findById(idPagamento)
+                .orElseThrow(() -> {
+                    log.warn("Pagamento {} não encontrado.", idPagamento);
+                    return new EntityNotFoundException("Pagamento não encontrado: " + idPagamento);
+                });
 
         return mercadoPagoService.buscarOrder(pagamento.getIdPagamentoExterno());
     }
@@ -171,8 +245,8 @@ public class PagamentoService {
      * <p>
      * Ao receber uma notificação, o serviço localiza o pagamento correspondente,
      * consulta o status atualizado na API do Mercado Pago e sincroniza as
-     * informações armazenadas localmente.
-     * </p>
+     * informações armazenadas localmente. É assim que o sistema "fica sabendo"
+     * que um PIX foi pago, sem precisar de nenhuma ação manual do atendente.
      *
      * @param idRecebido Identificador enviado pelo Mercado Pago.
      */
@@ -205,10 +279,11 @@ public class PagamentoService {
 
     /**
      * Atualiza o status do pagamento local de acordo com o status retornado pelo
-     * Mercado Pago.
+     * Mercado Pago e avisa o cliente pelo sistema de notificações quando o
+     * status muda para um estado final (aprovado, recusado, cancelado, devolvido).
      *
      * @param pagamento Pagamento persistido.
-     * @param order     Ordem retornada pela API do Mercado Pago.
+     * @param order Ordem retornada pela API do Mercado Pago.
      */
     private void atualizarPagamento(PagamentoModel pagamento,
                                     MercadoPagoDto.OrderResponse order) {
@@ -218,7 +293,7 @@ public class PagamentoService {
 
         pagamento.setStatusPagamento(novoStatus);
 
-        if (novoStatus == StatusPagamentoEnum.PAGO &&
+        if (novoStatus == StatusPagamentoEnum.APROVADO &&
                 pagamento.getDataPagamento() == null) {
 
             pagamento.setDataPagamento(LocalDateTime.now());
@@ -237,6 +312,7 @@ public class PagamentoService {
                     pagamento.getId(),
                     statusAnterior,
                     novoStatus);
+            notificarClienteMudancaStatus(pagamento, novoStatus);
         } else {
             log.debug(
                     "Pagamento {} permanece com status {}.",
@@ -246,11 +322,48 @@ public class PagamentoService {
     }
 
     /**
+     * Avisa o cliente (via notificação in-app) quando o Mercado Pago confirma,
+     * recusa, cancela ou devolve um pagamento — o mesmo tipo de aviso que o
+     * cliente já recebe quando um atendente avalia um pagamento presencial.
+     */
+    private void notificarClienteMudancaStatus(PagamentoModel pagamento, StatusPagamentoEnum novoStatus) {
+        if (novoStatus != StatusPagamentoEnum.APROVADO
+                && novoStatus != StatusPagamentoEnum.RECUSADO
+                && novoStatus != StatusPagamentoEnum.CANCELADO
+                && novoStatus != StatusPagamentoEnum.DEVOLVIDO) {
+            return;
+        }
+
+        consultaRepository.findByPagamento_Id(pagamento.getId()).ifPresent(consulta -> {
+            if (consulta.getSolicitante() == null) return;
+
+            String mensagem = switch (novoStatus) {
+                case APROVADO -> "Pagamento via PIX confirmado com sucesso!";
+                case RECUSADO -> "O pagamento via PIX foi recusado.";
+                case CANCELADO -> "O pagamento via PIX foi cancelado.";
+                case DEVOLVIDO -> "O pagamento via PIX foi devolvido.";
+                default -> "O status do seu pagamento foi atualizado.";
+            };
+
+            NovaNotificacaoForm notificacao = new NovaNotificacaoForm(
+                    consulta.getSolicitante().getId(),
+                    "Pagamento de Consulta",
+                    mensagem,
+                    TiposNotificacoesEnum.CONSULTA
+            );
+            try {
+                notificacoesController.enviarNotificacao(notificacao);
+            } catch (Exception e) {
+                log.error("Problema ao enviar notificação de atualização de pagamento PIX ao cliente!", e);
+            }
+        });
+    }
+
+    /**
      * Converte o status retornado pelo Mercado Pago para o
      * {@link StatusPagamentoEnum} utilizado pela aplicação.
      *
      * @param statusMp Status retornado pela API do Mercado Pago.
-     *
      * @return Status equivalente utilizado internamente.
      */
     private StatusPagamentoEnum mapearStatus(String statusMp) {
@@ -260,7 +373,7 @@ public class PagamentoService {
         }
 
         return switch (statusMp) {
-            case "processed" -> StatusPagamentoEnum.PAGO;
+            case "processed" -> StatusPagamentoEnum.APROVADO;
             case "canceled", "cancelled", "expired" -> StatusPagamentoEnum.CANCELADO;
             case "refunded" -> StatusPagamentoEnum.DEVOLVIDO;
             case "failed", "rejected" -> StatusPagamentoEnum.RECUSADO;
@@ -272,7 +385,6 @@ public class PagamentoService {
      * Obtém o primeiro método de pagamento retornado pelo Mercado Pago.
      *
      * @param order Ordem consultada.
-     *
      * @return Método de pagamento ou {@code null} caso não exista.
      */
     private MercadoPagoDto.OrderResponse.PaymentMethod extrairPaymentMethod(
@@ -293,7 +405,6 @@ public class PagamentoService {
      * Formata um valor monetário para o padrão esperado pela API do Mercado Pago.
      *
      * @param valor Valor original.
-     *
      * @return Valor com duas casas decimais.
      */
     private String formatarValor(BigDecimal valor) {
