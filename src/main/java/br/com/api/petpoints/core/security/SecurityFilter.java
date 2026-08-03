@@ -12,6 +12,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
 
@@ -36,15 +38,17 @@ public class SecurityFilter extends OncePerRequestFilter {
                 "/autenticacao/enviar-codigo-alterar-senha",
                 "/autenticacao/validar-codigo-alterar-senha",
                 "/autenticacao/redefinir-senha",
-                "/v3/api-docs",
-                "/swagger-ui",
-                "/swagger-ui.html"
+                "/pagamentos/webhook"
         );
-        if (path.contains("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem") || path.startsWith("/pagamentos")) {
+        if (path.contains("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem") || path.contains("/webhook")) {
             filterChain.doFilter(request, response);
             return;
         }
         var token = this.recoverToken(request);
+        log.info("Caminho: {} - REQUEST: {} - {}",
+                path,
+                request.getRequestURI(),
+                request.getQueryString());
         if (token == null)
             throw new TokenNaoEncontradaException("Token não encontrado!");
         if (!TokenService.tokenValida(token))

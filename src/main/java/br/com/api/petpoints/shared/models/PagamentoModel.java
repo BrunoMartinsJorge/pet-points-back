@@ -61,10 +61,6 @@ public class PagamentoModel {
     @Column(name = "motivo_indeferimento", length = 500)
     private String motivoIndeferimento;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "consulta_id")
-    private ConsultaModel consulta;
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

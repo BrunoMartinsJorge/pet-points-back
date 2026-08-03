@@ -53,8 +53,8 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
     @Override
     public CardsPagamentoDto buscarInformacoesCards(Long idUsuario) {
         List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario);
-        int efetuados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && (consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.ENVIADO) || consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.APROVADO))).toList().size();
-        int atrasados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento().getDataLimitePagamento().isBefore(LocalDateTime.now())).toList().size();
+        int efetuados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && (consulta.getPagamento() != null && consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.ENVIADO) || (consulta.getPagamento() != null && consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.APROVADO)))).toList().size();
+        int atrasados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento() != null && consulta.getPagamento().getDataLimitePagamento() != null && consulta.getPagamento().getDataLimitePagamento().isBefore(LocalDateTime.now())).toList().size();
         int reprovados = consultas.stream().filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.FINALIZADO) && consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO)).toList().size();
         return new CardsPagamentoDto(efetuados, atrasados, reprovados);
     }

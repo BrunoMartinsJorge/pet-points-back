@@ -2,7 +2,7 @@ package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.contr
 
 import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
-import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.ReagendamentoConsultaForm;
 import br.com.api.petpoints.shared.form.AvaliacaoForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.CancelarConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.SolicitacaoConsultaForm;
@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -105,8 +106,8 @@ public class MinhasConsultasClienteController {
     }
 
     @PutMapping("/alterar-forma-pagamento/{idConsulta}/{formaPagamento}")
-    public ResponseEntity<Void> alterarFormaPagamento(@PathVariable Long idConsulta, @PathVariable TipoPagamentoEnum formaPagamento) {
-        this.minhasConsultasClienteServiceImpl.alterarFormaPagamentoConsulta(idConsulta, formaPagamento);
+    public ResponseEntity<Void> alterarFormaPagamento(HttpServletRequest request, @PathVariable Long idConsulta, @PathVariable TipoPagamentoEnum formaPagamento) {
+        this.minhasConsultasClienteServiceImpl.alterarFormaPagamentoConsulta(this.idUsuario(request), idConsulta, formaPagamento);
         return ResponseEntity.ok().build();
     }
 
@@ -118,6 +119,12 @@ public class MinhasConsultasClienteController {
     @PostMapping("/avaliar-consulta/{idConsulta}")
     public ResponseEntity<Void> enviarAvaliacaoConsulta(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody AvaliacaoForm form) {
         this.minhasConsultasClienteServiceImpl.avaliarConsulta(this.idUsuario(request), idConsulta, form);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/reagendar-consulta")
+    public ResponseEntity<Void> reagendarConsulta(HttpServletRequest request, @RequestBody ReagendamentoConsultaForm form) {
+        this.minhasConsultasClienteServiceImpl.reagendarConsulta(this.idUsuario(request), form);
         return ResponseEntity.ok().build();
     }
 }

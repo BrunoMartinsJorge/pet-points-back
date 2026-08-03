@@ -6,6 +6,7 @@ import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dt
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
@@ -17,7 +18,6 @@ import br.com.api.petpoints.shared.models.ConsultaModel;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
-import br.com.api.petpoints.shared.repository.PagamentoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
@@ -40,7 +40,6 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final LogsServiceImpl logsService;
     private final NotificacoesController notificacoesController;
     private final PagamentoService pagamentoService;
-    private final PagamentoRepository pagamentoRepository;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -101,29 +100,53 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.INICIADO)
             throw new RuntimeException("A consulta não pode ser finalizada com o estado: " + consulta.getStatus().getDescricao() + "!");
+        if (consulta.getPagamento() != null)
+            throw new RuntimeException("Esta consulta já possui uma cobrança gerada!");
+
+        UsuarioModel veterinario = this.getUsuarioPorId(idUsuario);
+
         consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setFinalizadoEm(LocalDateTime.now());
         consulta.setResumoConsulta(resumo);
+        consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta, veterinario));
+
         consulta = this.consultaRepository.save(consulta);
         log.info("Consulta finalizada com sucesso: ID {} - {}", idConsulta, LocalDateTime.now());
-        UsuarioModel cliente = this.getUsuarioPorId(idUsuario);
-        this.logsService.registrarLog(cliente, TipoLogEnum.CONSULTA_FINALIZADA);
+        this.logsService.registrarLog(veterinario, TipoLogEnum.CONSULTA_FINALIZADA);
         this.enviarNotificacaoCliente(consulta);
         log.info("Notificações enviadas para cliente!");
-        PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
-                BigDecimal.valueOf(consulta.getTipoConsulta().getValor()),
-                "Pagamento Referente a consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
-                consulta.getSolicitante().getEmail(),
-                consulta.getSolicitante().getNome(),
-                "CONSULTA_ID_" + consulta.getId(),
-                consulta.getSolicitante().getCpf()
-        );
-        PagamentoDto.PagamentoPixResponse pagamentoPixResponse = this.pagamentoService.criarPagamentoPix(formPagamento, cliente);
-        ConsultaModel finalConsulta = consulta;
-        this.pagamentoRepository.findById(pagamentoPixResponse.pagamentoId()).ifPresent(pagamento -> {
-            finalConsulta.setPagamento(pagamento);
-            this.consultaRepository.save(finalConsulta);
-        });
+    }
+
+    /**
+     * Gera a cobrança referente à consulta de acordo com a forma de pagamento
+     * escolhida pelo cliente no momento da solicitação. Caso o cliente não
+     * tenha escolhido (fluxo legado / dado ausente), assume-se dinheiro
+     * (pagamento presencial), já que somente o PIX possui integração online.
+     */
+    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta, UsuarioModel veterinario) {
+        TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
+                ? consulta.getFormaPagamento()
+                : TipoPagamentoEnum.DINHEIRO;
+
+        BigDecimal valor = BigDecimal.valueOf(consulta.getTipoConsulta().getValor());
+        PagamentoModel pagamento = new PagamentoModel();
+
+        if (formaPagamento == TipoPagamentoEnum.PIX) {
+            PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
+                    valor,
+                    "Pagamento referente à consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
+                    consulta.getSolicitante().getEmail(),
+                    consulta.getSolicitante().getNome(),
+                    "CONSULTA_ID_" + consulta.getId(),
+                    consulta.getSolicitante().getCpf()
+            );
+            this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, veterinario);
+            return pagamento;
+        }
+
+        // Cartão (sem integração online) ou dinheiro: pagamento presencial,
+        // fica PENDENTE até o atendente confirmar o recebimento no balcão.
+        return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, veterinario);
     }
 
     private void enviarNotificacaoCliente(ConsultaModel consulta) {

@@ -1,6 +1,7 @@
 package br.com.api.petpoints.shared.models;
 
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,7 +41,6 @@ public class ConsultaModel {
     private UsuarioModel atendente;
 
     @ManyToOne
-    @JoinColumn(name = "veterinario_id")
     private UsuarioModel veterinario;
 
     @ManyToOne
@@ -77,6 +77,17 @@ public class ConsultaModel {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "pagamento_id")
     private PagamentoModel pagamento;
+
+    /**
+     * Forma de pagamento escolhida pelo cliente (PIX, cartão ou dinheiro).
+     * É apenas a "preferência" enquanto a consulta ainda não foi finalizada
+     * (ainda não existe cobrança). Quando o veterinário finaliza a consulta,
+     * este valor é usado para decidir se será gerada uma cobrança PIX (Mercado Pago)
+     * ou uma cobrança presencial (aguardando validação do atendente).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "forma_pagamento_selecionada")
+    private TipoPagamentoEnum formaPagamento;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "avaliacao_id")

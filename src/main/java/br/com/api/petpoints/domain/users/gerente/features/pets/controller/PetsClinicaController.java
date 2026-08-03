@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.gerente.features.pets.controller;
 
 import br.com.api.petpoints.domain.users.gerente.features.pets.dto.*;
+import br.com.api.petpoints.domain.users.gerente.features.pets.form.NovoPetForm;
 import br.com.api.petpoints.domain.users.gerente.features.pets.form.RelatorioPetsClinicaForm;
 import br.com.api.petpoints.domain.users.gerente.features.pets.service.PetsClinicaServiceImpl;
 import br.com.api.petpoints.shared.dto.CarteirinhaDto;
@@ -66,5 +67,11 @@ public class PetsClinicaController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=RelatorioGenerico.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+    }
+
+    @PostMapping("/novo-pet")
+    public ResponseEntity<Void> registrarNovoPet(@RequestBody NovoPetForm form) {
+        this.petsClinicaService.registrarNovoPet(form);
+        return ResponseEntity.ok().build();
     }
 }

@@ -140,6 +140,53 @@ public class MercadoPagoService {
     }
 
     /**
+     * Cancela uma ordem de pagamento PIX ainda pendente no Mercado Pago.
+     * <p>
+     * Usado quando o cliente troca a forma de pagamento antes de o PIX ser
+     * pago, para evitar que uma cobrança "órfã" continue válida para pagamento.
+     * Caso a ordem já tenha sido paga (ou já esteja em um estado que não
+     * permite cancelamento), o Mercado Pago retorna erro, que é propagado
+     * como {@link MercadoPagoException} para que o chamador decida o que fazer.
+     *
+     * @param orderId Identificador da ordem de pagamento.
+     * @return Dados atualizados da ordem após o cancelamento.
+     * @throws MercadoPagoException Caso a API retorne erro durante o cancelamento.
+     */
+    public MercadoPagoDto.OrderResponse cancelarOrder(String orderId) {
+
+        log.info("Cancelando ordem de pagamento {}.", orderId);
+
+        MercadoPagoDto.OrderResponse response = restClient.post()
+                .uri("/v1/orders/{id}/cancel", orderId)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, res) -> {
+                    String corpo = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
+
+                    log.error(
+                            "Erro ao cancelar ordem {}. Status: {}, Resposta: {}",
+                            orderId,
+                            res.getStatusCode(),
+                            corpo);
+
+                    throw new MercadoPagoException(
+                            "Erro ao cancelar order "
+                                    + orderId
+                                    + " ("
+                                    + res.getStatusCode()
+                                    + "): "
+                                    + corpo);
+                })
+                .body(MercadoPagoDto.OrderResponse.class);
+
+        log.info(
+                "Ordem {} cancelada. Status: {}",
+                orderId,
+                response != null ? response.status() : "SEM STATUS");
+
+        return response;
+    }
+
+    /**
      * Consulta os métodos de pagamento disponíveis para utilização.
      * <p>
      * Quando o parâmetro {@code marketplace} for nulo, a API considera o

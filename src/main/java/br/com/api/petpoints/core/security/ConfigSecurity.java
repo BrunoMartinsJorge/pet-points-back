@@ -59,7 +59,7 @@ public class ConfigSecurity {
                         .requestMatchers("/relatorios/**").hasAnyAuthority("RULE_REST_GERENTE")
                         .requestMatchers("/gerente-atendente/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE")
 
-                        .requestMatchers("/pagamentos/webhook/**").permitAll()
+                        .requestMatchers("/api/pagamentos/webhook").permitAll()
 
                         .anyRequest().authenticated()
                 )
