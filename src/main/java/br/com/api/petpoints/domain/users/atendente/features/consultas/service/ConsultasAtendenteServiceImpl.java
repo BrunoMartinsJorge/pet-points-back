@@ -246,7 +246,7 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
     @Override
     public InformacoesPagamentoDto buscarInformacoesPagamento(Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
-        if (consulta.getPagamento() == null) return new InformacoesPagamentoDto();
+        if (consulta.getPagamento() == null) return null;
         return new InformacoesPagamentoDto(consulta.getPagamento());
     }
 
