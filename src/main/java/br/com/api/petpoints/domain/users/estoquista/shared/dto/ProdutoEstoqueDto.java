@@ -21,6 +21,7 @@ public class ProdutoEstoqueDto {
     private String descricao;
     private double valorUnitario;
     private int quantidadeEstoque;
+    private int quantidadeMinima;
     private boolean quantidadeAbaixoEstoque;
 
     public ProdutoEstoqueDto(ProdutoModel produto) {
@@ -30,7 +31,8 @@ public class ProdutoEstoqueDto {
         this.descricao = produto.getDescricao();
         this.valorUnitario = produto.getValorUnitario();
         this.quantidadeEstoque = produto.getQuantidadeEstoque();
-        this.quantidadeAbaixoEstoque = produto.getQuantidadeEstoque() < produto.getQuantidadeMinima();
+        this.quantidadeMinima = produto.getQuantidadeMinima();
+        this.quantidadeAbaixoEstoque = produto.abaixoEstoque();
     }
 
     public static List<ProdutoEstoqueDto> convert(List<ProdutoModel> produtos) {

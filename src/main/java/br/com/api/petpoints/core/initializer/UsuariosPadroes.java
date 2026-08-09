@@ -160,6 +160,11 @@ public class UsuariosPadroes implements CommandLineRunner {
     }
 
     private void pet(UsuarioModel cliente) {
+        List<PetModel> pets = this.petRepository.findAllByTutor_Id(cliente.getId());
+        if (pets.size() > 1) {
+            pets.removeFirst();
+            this.petRepository.deleteAll(pets);
+        } else {
         PetModel pet = new PetModel();
         pet.setTutor(cliente);
         pet.setStatus(StatusPerfilEnum.A);
@@ -169,6 +174,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         pet.setRaca("Shitzu");
         pet.setTipo(TipoAnimalEnum.CACHORRO);
         this.petRepository.save(pet);
+        }
     }
 
     private void pagamentos() {

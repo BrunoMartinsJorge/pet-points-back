@@ -2,19 +2,27 @@ package br.com.api.petpoints.domain.users.estoquista.features.estoque.service;
 
 import br.com.api.petpoints.domain.users.estoquista.features.estoque.dto.CardsEstoqueDto;
 import br.com.api.petpoints.domain.users.estoquista.features.estoque.dto.ProdutoDetalhesDto;
+import br.com.api.petpoints.domain.users.estoquista.features.estoque.form.EditarProdutoForm;
 import br.com.api.petpoints.domain.users.estoquista.shared.dto.ProdutoEstoqueDto;
 import br.com.api.petpoints.domain.users.estoquista.features.estoque.dto.ProdutoRelatorioDto;
+import br.com.api.petpoints.shared.enums.TipoLogEnum;
+import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import br.com.api.petpoints.shared.form.FiltrosProdutoForm;
 import br.com.api.petpoints.domain.users.estoquista.features.estoque.form.NovoProdutoForm;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
+import br.com.api.petpoints.shared.models.LogsModel;
 import br.com.api.petpoints.shared.models.MovimentacaoModel;
 import br.com.api.petpoints.shared.models.ProdutoModel;
+import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.MovimentacaoRepository;
 import br.com.api.petpoints.shared.repository.ProdutoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import br.com.api.petpoints.shared.utils.RelatoriosUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -28,9 +36,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class EstoqueServiceImpl implements EstoqueService {
 
+    private static final Logger log = LoggerFactory.getLogger(EstoqueServiceImpl.class);
     private final ProdutoRepository produtoRepository;
     private final MovimentacaoRepository movimentacaoRepository;
     private final TemplateEngine templateEngine;
+    private final LogsServiceImpl logsService;
     private final UsuarioRepository usuarioRepository;
 
     private List<ProdutoModel> getProdutos() {
@@ -39,6 +49,10 @@ public class EstoqueServiceImpl implements EstoqueService {
 
     private ProdutoModel getProdutoPorId(Long idProduto) {
         return this.produtoRepository.findById(idProduto).orElseThrow(() -> new ObjectNotFoundException("Produto com ID: " + idProduto + " não encontrado!"));
+    }
+
+    private UsuarioModel getUsuarioPorId(Long idUsuario) {
+        return this.usuarioRepository.findById(idUsuario).orElseThrow(() -> new ObjectNotFoundException("Usuário com ID: " + idUsuario + " não encontrado!"));
     }
 
     @Override
@@ -54,10 +68,9 @@ public class EstoqueServiceImpl implements EstoqueService {
         int quantidadeAbaixoEstoque = 0;
         for (ProdutoModel produto : produtos) {
             quantidadeEstoque += produto.getQuantidadeEstoque();
-            if (produto.getQuantidadeEstoque() < produto.getQuantidadeMinima()) {
+            if (produto.abaixoEstoque())
                 quantidadeAbaixoEstoque++;
-            }
-            valorTotal += produto.getValorUnitario() * produto.getQuantidadeEstoque();
+            valorTotal += produto.valorEstoque();
         }
         return new CardsEstoqueDto(valorTotal, quantidadeEstoque, quantidadeAbaixoEstoque);
     }
@@ -80,8 +93,39 @@ public class EstoqueServiceImpl implements EstoqueService {
     }
 
     @Override
-    public void registrarProduto(NovoProdutoForm form) {
-        this.produtoRepository.save(new ProdutoModel(form));
+    public void registrarProduto(Long idUsuario, NovoProdutoForm form) {
+        UsuarioModel estoquista = this.getUsuarioPorId(idUsuario);
+        log.info("[REGISTRO DE PRODUTO] - ESTOQUISTA - Estoquista {} esta registrando um produto com as informações {}", estoquista.getNome(), form.toString());
+        ProdutoModel produto = this.produtoRepository.save(new ProdutoModel(form));
+        log.info("[REGISTRO DE PRODUTO] - ESTOQUISTA - Produto registrado com sucesso - ID: {}", produto.getId());
+        String apendice = "Produto registrado: " + produto.getNome() + " - ID: " + produto.getId();
+        this.logsService.registrarLog(estoquista, TipoLogEnum.REGISTROU_PRODUTO, apendice);
+        log.info("[REGISTRO DE PRODUTO] - ESTOQUISTA - Registrando Log de Criação de Produto");
+    }
+
+    @Override
+    @Transactional
+    public void editarProduto(Long idUsuario, EditarProdutoForm form, Long idProduto) {
+        UsuarioModel estoquista = this.getUsuarioPorId(idUsuario);
+        ProdutoModel produto = this.getProdutoPorId(idProduto);
+        produto.setValorUnitario(form.getValorUnitario());
+        produto.setQuantidadeMinima(form.getQuantidadeAbaixoEstoque());
+        produto.setTipo(form.getTipo());
+        produto.setNome(form.getNome());
+        produto.setDescricao(form.getDescricao());
+        this.produtoRepository.save(produto);
+        String apendice = "Produto alterado: " + produto.getNome() + " - ID: " + produto.getId();
+        this.logsService.registrarLog(estoquista, TipoLogEnum.EDITOU_PRODUTO, apendice);
+    }
+
+    @Override
+    @Transactional
+    public void removerProduto(Long idUsuario, Long idProduto) {
+        UsuarioModel estoquista = this.getUsuarioPorId(idUsuario);
+        ProdutoModel produto = this.getProdutoPorId(idProduto);
+        this.produtoRepository.deleteById(idProduto);
+        String apendice = "Produto removido: " + produto.getNome() + " - ID: " + produto.getId();
+        this.logsService.registrarLog(estoquista, TipoLogEnum.REMOVEU_PRODUTO, apendice);
     }
 
     private List<ProdutoRelatorioDto> filtrarProdutosRelatorios(FiltrosProdutoForm form, List<ProdutoModel> produtos) {
