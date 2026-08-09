@@ -34,6 +34,18 @@ public class LogsServiceImpl implements LogsService {
     }
 
     @Override
+    @Transactional
+    public void registrarLog(UsuarioModel usuario, TipoLogEnum tipoLog, String apendice) {
+        LogsModel log = new LogsModel(
+                usuario,
+                tipoLog,
+                this.gerarMensagemLog(tipoLog, usuario) + apendice
+        );
+        this.logRepository.save(log);
+    }
+
+    @Override
+    @Transactional
     public void registrarException(Exception ex, HttpServletRequest request, HttpStatus status) {
 
         UsuarioModel usuario = this.buscarUsuario(request);
@@ -51,11 +63,38 @@ public class LogsServiceImpl implements LogsService {
         return switch (tipoLog) {
             case LOGIN -> "O usuário " + usuario.getEmail() + " efetuou login!";
             case REGISTRO -> "Um novo usuário foi registrado ao sistema: " + usuario.getEmail();
+            case ERRO ->
+                    "Ocorreu um erro durante uma ação do usuário " + usuario.getNome() + " - " + usuario.getEmail() + "!";
+            case MOVIMENTACAO_ENTRADA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " registrou uma movimentação de entrada!";
+            case MOVIMENTACAO_SAIDA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " registrou uma movimentação de saída!";
+            case SE_DESATIVOU -> "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " desativou o próprio perfil!";
             case CANCELOU_CONSULTA ->
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Cancelou uma consulta!";
+            case SOLICITOU_CONSULTA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " solicitou uma nova consulta!";
+            case DEFERIU_CONSULTA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Deferiu uma solicitação de consulta!";
+            case INDEFERIU_CONSULTA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Indeferiu uma solicitação de consulta!";
+            case CONSULTA_INICIADA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " iniciou uma consulta!";
+            case CONSULTA_FINALIZADA ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " finalizou uma consulta!";
+            case DESATIVOU_PERFIL ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Desativou o perfil de outro usuário!";
             case EDITOU_TIPO_CONSULTA ->
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Editou as informações de um tipo de consulta!";
             case ADICIONOU_CLIENTE -> usuario.getNome() + " registrou um novo cliente.";
+            case REGISTROU_PRODUTO ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " registrou um novo produto!";
+            case REMOVEU_PRODUTO ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " removeu um produto!";
+            case EDITOU_PRODUTO ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " editou as informações de um produto!";
+            case REGISTROU_PAGAMENTO_PRESENCIAL ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " registrou um pagamento presencial!";
             default -> "Ação Efetuada - Não Registrada";
         };
     }

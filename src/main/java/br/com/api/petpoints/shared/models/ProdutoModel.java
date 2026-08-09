@@ -46,4 +46,12 @@ public class ProdutoModel {
         this.descricao = form.getDescricao();
         this.nome = form.getNome();
     }
+
+    public boolean abaixoEstoque(){
+        return this.getQuantidadeEstoque() < this.getQuantidadeMinima();
+    }
+
+    public double valorEstoque() {
+        return this.quantidadeEstoque * this.valorUnitario;
+    }
 }

@@ -7,5 +7,6 @@ import org.springframework.http.HttpStatus;
 
 public interface LogsService {
     void registrarLog(UsuarioModel usuario, TipoLogEnum tipoLog);
+    void registrarLog(UsuarioModel usuario, TipoLogEnum tipoLog, String apendice);
     void registrarException(Exception ex, HttpServletRequest request, HttpStatus status);
 }
