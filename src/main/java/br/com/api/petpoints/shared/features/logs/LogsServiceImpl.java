@@ -95,6 +95,8 @@ public class LogsServiceImpl implements LogsService {
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " editou as informações de um produto!";
             case REGISTROU_PAGAMENTO_PRESENCIAL ->
                     "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " registrou um pagamento presencial!";
+            case INDEFERIU_PAGAMENTO ->
+                    "O usuário " + usuario.getNome() + " - " + usuario.getEmail() + " - " + usuario.getPermissao() + ". Indeferiu um pagamento!";
             default -> "Ação Efetuada - Não Registrada";
         };
     }

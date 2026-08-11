@@ -200,13 +200,39 @@ public class PagamentoService {
     @Transactional
     public PagamentoDto.StatusPagamentoResponse consultarStatus(Long pagamentoId) {
 
-        log.info("Consultando status do pagamento {}.", pagamentoId);
-
         PagamentoModel pagamento = pagamentoRepository.findById(pagamentoId)
                 .orElseThrow(() -> {
                     log.warn("Pagamento {} não encontrado.", pagamentoId);
                     return new EntityNotFoundException("Pagamento não encontrado: " + pagamentoId);
                 });
+
+        MercadoPagoDto.OrderResponse order = sincronizarComGateway(pagamento);
+
+        return new PagamentoDto.StatusPagamentoResponse(
+                pagamento.getId(),
+                order.id(),
+                pagamento.getStatusPagamento().name(),
+                order.status(),
+                order.statusDetail()
+        );
+    }
+
+    /**
+     * Consulta a ordem no Mercado Pago e sincroniza o pagamento local com o que
+     * o gateway respondeu — o mesmo caminho percorrido pelo webhook, porém
+     * disparado sob demanda.
+     * <p>
+     * Diferente de {@link #consultarStatus(Long)}, devolve a ordem completa, o
+     * que permite a quem chamou exibir os dados da transação (valores, status
+     * detalhado) e não apenas o status resumido.
+     *
+     * @param pagamento Pagamento já carregado da base.
+     * @return Ordem retornada pelo Mercado Pago.
+     */
+    @Transactional
+    public MercadoPagoDto.OrderResponse sincronizarComGateway(PagamentoModel pagamento) {
+
+        log.info("Consultando status do pagamento {}.", pagamento.getId());
 
         MercadoPagoDto.OrderResponse order =
                 mercadoPagoService.buscarOrder(pagamento.getIdPagamentoExterno());
@@ -219,13 +245,7 @@ public class PagamentoService {
                 pagamento.getStatusPagamento(),
                 order.status());
 
-        return new PagamentoDto.StatusPagamentoResponse(
-                pagamento.getId(),
-                order.id(),
-                pagamento.getStatusPagamento().name(),
-                order.status(),
-                order.statusDetail()
-        );
+        return order;
     }
 
     public MercadoPagoDto.OrderResponse buscarPagamentoPix(Long idPagamento) {
