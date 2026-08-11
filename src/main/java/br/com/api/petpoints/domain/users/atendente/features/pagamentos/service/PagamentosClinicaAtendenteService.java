@@ -15,4 +15,5 @@ public interface PagamentosClinicaAtendenteService {
     DetalhesPagamentoClinicaDto buscarDetalhesPagamento(Long idPagamento);
     DetalhesPagamentoClinicaDto consultarStatusTransacao(Long idPagamento);
     void indeferirPagamento(Long idUsuario, Long idPagamento, IndeferirPagamentoClinicaForm form);
+    void notificarClientePendenciaPagamento(Long idPagamento);
 }

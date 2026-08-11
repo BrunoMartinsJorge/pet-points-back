@@ -46,7 +46,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         Map<String, UsuarioModel> criados = new HashMap<>();
 
         criados.put("gerente", salvarUsuario(
-                "Bruno Martins Jorge", "rexon300008@gmail.com",
+                "Bruno Martins Jorge", "gerente@gmail.com",
                 GeneroEnum.M, "2006-06-12", "18996313182", "48250377044", TipoUsuario.G));
 
         criados.put("veterinario", salvarUsuario(
@@ -58,8 +58,8 @@ public class UsuariosPadroes implements CommandLineRunner {
                 GeneroEnum.M, "2006-11-26", "18996312459", "28449414008", TipoUsuario.A));
 
         criados.put("cliente", salvarUsuario(
-                "Marizinha", "cliente@gmail.com",
-                GeneroEnum.F, "1980-10-16", "18996738459", "60099673096", TipoUsuario.C));
+                "Marizinha", "rexon300008@gmail.com",
+                GeneroEnum.F, "1980-10-16", "18996738459", "57700774846", TipoUsuario.C));
 
         pet(criados.get("cliente"));
 
@@ -83,6 +83,22 @@ public class UsuariosPadroes implements CommandLineRunner {
                 GeneroEnum.M, "1995-07-02", "18996333444", "45317828791", TipoUsuario.C));
 
         return criados;
+    }
+
+    @Transactional
+    protected void mockarConsulta(UsuarioModel cliente, UsuarioModel atendente, UsuarioModel veterinario, TipoConsultaModel tipo) {
+        ConsultaModel consulta = new ConsultaModel();
+        consulta.setDataConsulta(LocalDateTime.now().minusDays(1));
+        consulta.setVeterinario(veterinario);
+        consulta.setTipoConsulta(tipo);
+        PetModel pet = this.petRepository.findAllByTutor_Id(cliente.getId()).getFirst();
+        consulta.setPet(pet);
+        consulta.setStatus(StatusConsultaEnum.PENDENTE);
+        consulta.setSolicitante(cliente);
+        // consulta.setAtendente(atendente);
+        consulta.setSolicitadoEm(LocalDateTime.now().minusDays(2));
+        consulta.setFormaPagamento(TipoPagamentoEnum.CARTAO);
+        this.consultaRepository.save(consulta);
     }
 
     private UsuarioModel salvarUsuario(String nome, String email, GeneroEnum genero,
@@ -141,7 +157,7 @@ public class UsuariosPadroes implements CommandLineRunner {
         TipoConsultaModel rotina = new TipoConsultaModel();
         rotina.setNome("Consulta de Rotina");
         rotina.setDescricao("Avaliação geral de saúde do animal.");
-        rotina.setValor(120.00);
+        rotina.setValor(1.00);
         rotina.setVeterinarios(vets);
 
         TipoConsultaModel emergencia = new TipoConsultaModel();
@@ -156,15 +172,14 @@ public class UsuariosPadroes implements CommandLineRunner {
         vacinacao.setValor(80.00);
         vacinacao.setVeterinarios(List.of(usuarios.get("veterinario")));
 
-        this.tipoConsultaRepository.saveAll(List.of(rotina, emergencia, vacinacao));
+        this.tipoConsultaRepository.saveAll(List.of(emergencia, vacinacao));
+        rotina = this.tipoConsultaRepository.save(rotina);
+        // mockarConsulta(usuarios.get("cliente"), usuarios.get("atendente"), usuarios.get("veterinario"), rotina);
     }
 
     private void pet(UsuarioModel cliente) {
-        List<PetModel> pets = this.petRepository.findAllByTutor_Id(cliente.getId());
-        if (pets.size() > 1) {
-            pets.removeFirst();
-            this.petRepository.deleteAll(pets);
-        } else {
+        List<PetModel> petsCliente = this.petRepository.findAllByTutor_Id(cliente.getId());
+        if (!petsCliente.isEmpty()) return;
         PetModel pet = new PetModel();
         pet.setTutor(cliente);
         pet.setStatus(StatusPerfilEnum.A);
@@ -174,7 +189,6 @@ public class UsuariosPadroes implements CommandLineRunner {
         pet.setRaca("Shitzu");
         pet.setTipo(TipoAnimalEnum.CACHORRO);
         this.petRepository.save(pet);
-        }
     }
 
     private void pagamentos() {

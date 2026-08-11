@@ -108,7 +108,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setFinalizadoEm(LocalDateTime.now());
         consulta.setResumoConsulta(resumo);
-        consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta, veterinario));
+        consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta));
 
         consulta = this.consultaRepository.save(consulta);
         log.info("Consulta finalizada com sucesso: ID {} - {}", idConsulta, LocalDateTime.now());
@@ -123,7 +123,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
      * tenha escolhido (fluxo legado / dado ausente), assume-se dinheiro
      * (pagamento presencial), já que somente o PIX possui integração online.
      */
-    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta, UsuarioModel veterinario) {
+    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta) {
         TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
                 ? consulta.getFormaPagamento()
                 : TipoPagamentoEnum.DINHEIRO;
@@ -140,13 +140,13 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
                     "CONSULTA_ID_" + consulta.getId(),
                     consulta.getSolicitante().getCpf()
             );
-            this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, veterinario);
+            this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, consulta.getSolicitante());
             return pagamento;
         }
 
         // Cartão (sem integração online) ou dinheiro: pagamento presencial,
         // fica PENDENTE até o atendente confirmar o recebimento no balcão.
-        return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, veterinario);
+        return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, consulta.getSolicitante());
     }
 
     private void enviarNotificacaoCliente(ConsultaModel consulta) {

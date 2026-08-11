@@ -23,10 +23,15 @@ import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
 import br.com.api.petpoints.shared.repository.PagamentoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,6 +50,8 @@ public class PagamentosClinicaAtendenteServiceImpl implements PagamentosClinicaA
     private final LogsServiceImpl logsService;
     private final PagamentoService pagamentoService;
     private final NotificacoesController notificacoesController;
+    private final TemplateEngine templateEngine;
+    private final JavaMailSenderImpl mailSender;
 
     private UsuarioModel getUsuarioPorId(Long id) {
         return this.usuarioRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Atendente com ID: " + id + " não encontrado!"));
@@ -124,9 +131,35 @@ public class PagamentosClinicaAtendenteServiceImpl implements PagamentosClinicaA
         pagamento.setAprovadoPor(atendente);
         pagamento.setDataAtualizacao(LocalDateTime.now());
         this.pagamentoRepository.save(pagamento);
-
         this.notificarClienteIndeferimento(pagamento);
         this.logsService.registrarLog(atendente, TipoLogEnum.INDEFERIU_PAGAMENTO, " Valor do pagamento R$" + pagamento.getValorPagamento());
+    }
+
+    @Override
+    public void notificarClientePendenciaPagamento(Long idPagamento) {
+        PagamentoModel pagamento = this.getPagamentoPorId(idPagamento);
+        Context context = new Context();
+        context.setVariable("usuario", pagamento.getEmitidoPor().getNome());
+        context.setVariable("valor", pagamento.getValorPagamento());
+        context.setVariable("metodoPagamento", pagamento.getTipoPagamento());
+        this.enviarEmail(context, pagamento.getEmitidoPor().getEmail());
+    }
+
+    private void enviarEmail(Context context, String email) {
+        try {
+            String htmlTemplate = templateEngine.process("email/pagamento_pendente", context);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(email);
+            helper.setSubject("Pagamento Pendente");
+            helper.setFrom("clinapetpoints@gmail.com");
+            helper.setText(htmlTemplate, true);
+            mailSender.send(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Erro ao enviar email");
+        }
+        log.info("Email de cobrança enviado com sucesso!");
     }
 
     private DetalhesPagamentoClinicaDto montarDetalhes(PagamentoModel pagamento, MercadoPagoDto.OrderResponse order) {

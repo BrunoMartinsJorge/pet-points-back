@@ -73,7 +73,10 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
 
     @Override
     public List<PagamentosDto> listarHistoricoPagamentos(Long idUsuario) {
-        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta -> !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO) && !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.PENDENTE)).toList();
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta ->
+                consulta.getPagamento() != null &&
+                        !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO) &&
+                        !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.PENDENTE)).toList();
         return PagamentosDto.convert(consultas);
     }
 
@@ -82,6 +85,7 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         return new MinhasConsultasDto(consulta);
     }
+
     @Override
     @Transactional
     public void alterarFormaPagamento(Long idPagamento, TipoPagamentoEnum novaForma) {
@@ -107,26 +111,6 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
                 log.error("Ocorreu um erro ao buscar os detalhes do pagamento via PIX desse pagamento! {}", idPagamento);
             }
             return null;
-        }
-    }
-
-    private UUID salvarArquivo(MultipartFile form) {
-        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
-        List<String> tiposPermitidos = List.of(
-                "image/png",
-                "image/jpeg",
-                "application/pdf"
-        );
-        if (!tiposPermitidos.contains(form.getContentType()))
-            throw new RuntimeException("Tipo inválido");
-        ArquivosModel arquivo = new ArquivosModel();
-        try {
-            arquivo.setConteudo(form.getBytes());
-            arquivo.setNome(form.getOriginalFilename());
-            arquivo.setTipo(form.getContentType());
-            return this.arquivoRepository.save(arquivo).getId();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }

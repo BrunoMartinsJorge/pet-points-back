@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<meta charset="UTF-8"/>
+<body style="font-family: Arial,serif; background:#f4f4f4; padding:20px;">
+
+<div style="max-width:600px; margin:auto; background:white; padding:30px; border-radius:8px">
+
+    <h1 style="color:#3b7c2e;">Pet Points 🐾</h1>
+
+    <p>Olá <b th:text="${usuario}"></b>,</p>
+
+    <p>Identificamos que você possui um pagamento pendente. Confira os detalhes abaixo:</p>
+
+    <div style="background:#f9f9f9; border:1px solid #ddd; border-radius:6px; padding:16px; margin:20px 0;">
+        <p style="margin:0 0 8px 0;">
+            <span style="color:gray; font-size:12px;">VALOR</span><br/>
+            <b style="font-size:20px; color:#3b7c2e;" th:text="'R$ ' + ${valor}"></b>
+        </p>
+        <p style="margin:0;">
+            <span style="color:gray; font-size:12px;">FORMA DE PAGAMENTO</span><br/>
+            <b th:text="${metodoPagamento}"></b>
+        </p>
+    </div>
+
+    <p>Para evitar atrasos, regularize o pagamento o quanto antes através do sistema.</p>
+
+    <hr style="margin-top:30px">
+
+    <p style="font-size:12px; color:gray">
+        Pet Points - Sistema de gerenciamento veterinário
+    </p>
+
+    <a href="https://pet-points-front.vercel.app/">Acessar o sistema</a>
+</div>
+
+</body>
+</html>

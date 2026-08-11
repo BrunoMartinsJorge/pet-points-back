@@ -56,4 +56,10 @@ public class PagamentosClinicaAtendenteController {
         this.pagamentosClinicaAtendenteService.indeferirPagamento(TokenUtils.getIdUsuario(request), idPagamento, form);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/notificar-cliente/{idPagamento}")
+    public ResponseEntity<Void> notificarClientePagamento(@PathVariable Long idPagamento) {
+        this.pagamentosClinicaAtendenteService.notificarClientePendenciaPagamento(idPagamento);
+        return ResponseEntity.ok().build();
+    }
 }
