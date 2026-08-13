@@ -4,10 +4,15 @@ import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.ItemCobrancaForm;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
+import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
+import br.com.api.petpoints.shared.exception.custom.IllegalAccessException;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
@@ -15,9 +20,14 @@ import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoFor
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.models.ConsultaModel;
+import br.com.api.petpoints.shared.models.ItemConsultaModel;
+import br.com.api.petpoints.shared.models.MovimentacaoModel;
 import br.com.api.petpoints.shared.models.PagamentoModel;
+import br.com.api.petpoints.shared.models.ProdutoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
+import br.com.api.petpoints.shared.repository.MovimentacaoRepository;
+import br.com.api.petpoints.shared.repository.ProdutoRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
@@ -28,7 +38,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -37,6 +49,8 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
 
     private final UsuarioRepository usuarioRepository;
     private final ConsultaRepository consultaRepository;
+    private final ProdutoRepository produtoRepository;
+    private final MovimentacaoRepository movimentacaoRepository;
     private final LogsServiceImpl logsService;
     private final NotificacoesController notificacoesController;
     private final PagamentoService pagamentoService;
@@ -95,19 +109,30 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     }
 
     @Override
+    public List<ProdutoCobrancaDto> listarProdutosParaCobranca() {
+        List<ProdutoModel> disponiveis = this.produtoRepository.findAll().stream()
+                .filter(produto -> produto.getQuantidadeEstoque() > 0)
+                .toList();
+        return ProdutoCobrancaDto.convert(disponiveis);
+    }
+
+    @Override
     @Transactional
-    public void finalizarConsulta(Long idUsuario, Long idConsulta, String resumo) {
+    public void finalizarConsulta(Long idUsuario, Long idConsulta, FinalizarConsultaForm form) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.INICIADO)
             throw new RuntimeException("A consulta não pode ser finalizada com o estado: " + consulta.getStatus().getDescricao() + "!");
         if (consulta.getPagamento() != null)
             throw new RuntimeException("Esta consulta já possui uma cobrança gerada!");
+        if (form == null || form.getResumo() == null || form.getResumo().isBlank())
+            throw new IllegalArgumentException("O resumo da consulta é obrigatório para finalizá-la!");
 
         UsuarioModel veterinario = this.getUsuarioPorId(idUsuario);
 
         consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setFinalizadoEm(LocalDateTime.now());
-        consulta.setResumoConsulta(resumo);
+        consulta.setResumoConsulta(form.getResumo());
+        this.registrarItensCobranca(consulta, form.getItens(), veterinario);
         consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta));
 
         consulta = this.consultaRepository.save(consulta);
@@ -118,17 +143,68 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     }
 
     /**
+     * Lança os produtos consumidos durante a consulta (vacinas, medicamentos, etc.),
+     * dando baixa no estoque e registrando uma movimentação de saída em nome do
+     * veterinário para cada produto — do mesmo modo que o estoquista faria manualmente.
+     * <p>
+     * Itens repetidos do mesmo produto são somados antes da validação, de forma que
+     * a quantidade total lançada nunca ultrapasse o estoque disponível.
+     */
+    private void registrarItensCobranca(ConsultaModel consulta, List<ItemCobrancaForm> itens, UsuarioModel veterinario) {
+        consulta.getItensCobranca().clear();
+        if (itens == null || itens.isEmpty())
+            return;
+
+        Map<Long, Integer> quantidadePorProduto = new LinkedHashMap<>();
+        for (ItemCobrancaForm item : itens) {
+            if (item.getIdProduto() == null)
+                throw new IllegalArgumentException("Informe o produto de todos os itens de cobrança!");
+            if (item.getQuantidade() <= 0)
+                throw new IllegalArgumentException("A quantidade dos itens de cobrança deve ser maior que zero!");
+            quantidadePorProduto.merge(item.getIdProduto(), item.getQuantidade(), Integer::sum);
+        }
+
+        quantidadePorProduto.forEach((idProduto, quantidade) -> {
+            ProdutoModel produto = this.produtoRepository.findById(idProduto)
+                    .orElseThrow(() -> new ObjectNotFoundException("Produto com ID: " + idProduto + " não encontrado!"));
+            if (produto.getQuantidadeEstoque() < quantidade)
+                throw new IllegalAccessException("O produto " + produto.getNome() + " possui apenas " + produto.getQuantidadeEstoque() + " unidade(s) em estoque!");
+
+            produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - quantidade);
+            this.produtoRepository.save(produto);
+            this.movimentacaoRepository.save(this.gerarMovimentacaoSaida(produto, veterinario, quantidade));
+            consulta.getItensCobranca().add(new ItemConsultaModel(consulta, produto, quantidade));
+
+            log.info("Baixa de estoque na consulta {}: {} x {} unidade(s).", consulta.getId(), produto.getNome(), quantidade);
+        });
+
+        this.logsService.registrarLog(veterinario, TipoLogEnum.MOVIMENTACAO_SAIDA);
+    }
+
+    private MovimentacaoModel gerarMovimentacaoSaida(ProdutoModel produto, UsuarioModel veterinario, int quantidade) {
+        MovimentacaoModel movimentacao = new MovimentacaoModel();
+        movimentacao.setTipo(TipoMovimentacaoEnum.SAIDA);
+        movimentacao.setProduto(produto);
+        movimentacao.setMovimentadoPor(veterinario);
+        movimentacao.setQuantidadeMovimentada(quantidade);
+        return movimentacao;
+    }
+
+    /**
      * Gera a cobrança referente à consulta de acordo com a forma de pagamento
      * escolhida pelo cliente no momento da solicitação. Caso o cliente não
      * tenha escolhido (fluxo legado / dado ausente), assume-se dinheiro
      * (pagamento presencial), já que somente o PIX possui integração online.
+     * <p>
+     * O valor cobrado é o do tipo de consulta somado aos itens lançados pelo
+     * veterinário na finalização.
      */
     private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta) {
         TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
                 ? consulta.getFormaPagamento()
                 : TipoPagamentoEnum.DINHEIRO;
 
-        BigDecimal valor = BigDecimal.valueOf(consulta.getTipoConsulta().getValor());
+        BigDecimal valor = consulta.valorTotalCobranca();
         PagamentoModel pagamento = new PagamentoModel();
 
         if (formaPagamento == TipoPagamentoEnum.PIX) {

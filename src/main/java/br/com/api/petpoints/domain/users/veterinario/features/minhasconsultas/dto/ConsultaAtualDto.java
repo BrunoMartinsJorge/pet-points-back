@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,6 +26,7 @@ public class ConsultaAtualDto {
     private String observacoes;
     private LocalDateTime iniciadoEm;
     private LocalDateTime finalizadoEm;
+    private BigDecimal valorConsulta;
 
     public ConsultaAtualDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -35,5 +37,6 @@ public class ConsultaAtualDto {
         this.observacoes = consulta.getObservacoes();
         this.iniciadoEm = consulta.getIniciadoEm();
         this.finalizadoEm = consulta.getFinalizadoEm();
+        this.valorConsulta = consulta.valorConsulta();
     }
 }

@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.validator.constraints.Length;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "consulta")
@@ -94,4 +97,28 @@ public class ConsultaModel {
     private AvaliacaoModel avaliacao;
 
     private String observacoes;
+
+    /**
+     * Itens (vacinas, medicamentos, etc.) lançados pelo veterinário no momento
+     * da finalização da consulta. Somados ao valor do tipo de consulta, formam
+     * o valor total da cobrança gerada para o cliente.
+     */
+    @OneToMany(mappedBy = "consulta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemConsultaModel> itensCobranca = new ArrayList<>();
+
+    public BigDecimal valorConsulta() {
+        return this.tipoConsulta != null
+                ? BigDecimal.valueOf(this.tipoConsulta.getValor())
+                : BigDecimal.ZERO;
+    }
+
+    public BigDecimal valorItensCobranca() {
+        return this.itensCobranca.stream()
+                .map(ItemConsultaModel::valorTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal valorTotalCobranca() {
+        return this.valorConsulta().add(this.valorItensCobranca());
+    }
 }

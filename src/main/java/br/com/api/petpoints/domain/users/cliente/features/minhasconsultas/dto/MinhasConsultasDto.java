@@ -22,6 +22,7 @@ public class MinhasConsultasDto {
     private LocalDateTime dataHoraConsulta;
     private StatusConsultaEnum statusConsulta;
     private String tipoConsulta;
+    private Long idVeterinario;
 
     public MinhasConsultasDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -30,6 +31,7 @@ public class MinhasConsultasDto {
         this.dataHoraConsulta = consulta.getDataConsulta();
         this.statusConsulta = consulta.getStatus();
         this.tipoConsulta = consulta.getTipoConsulta().getNome();
+        this.idVeterinario = consulta.getVeterinario().getId();
     }
 
     public static List<MinhasConsultasDto> convert(List<ConsultaModel> consultas) {

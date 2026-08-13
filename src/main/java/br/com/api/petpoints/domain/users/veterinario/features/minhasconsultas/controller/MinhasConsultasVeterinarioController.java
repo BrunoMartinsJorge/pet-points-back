@@ -4,6 +4,8 @@ import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service.MinhasConsultaVeterinarioServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -49,9 +51,14 @@ public class MinhasConsultasVeterinarioController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/produtos-cobranca")
+    public ResponseEntity<List<ProdutoCobrancaDto>> listarProdutosParaCobranca() {
+        return ResponseEntity.ok().body(this.minhasConsultaVeterinarioService.listarProdutosParaCobranca());
+    }
+
     @PutMapping("/finalizar/{id}")
-    public ResponseEntity<Void> finalizarConsulta(HttpServletRequest request, @PathVariable Long id, @RequestBody String resumo) {
-        this.minhasConsultaVeterinarioService.finalizarConsulta(this.getIdUsuario(request), id, resumo);
+    public ResponseEntity<Void> finalizarConsulta(HttpServletRequest request, @PathVariable Long id, @RequestBody FinalizarConsultaForm form) {
+        this.minhasConsultaVeterinarioService.finalizarConsulta(this.getIdUsuario(request), id, form);
         return ResponseEntity.ok().build();
     }
 }
