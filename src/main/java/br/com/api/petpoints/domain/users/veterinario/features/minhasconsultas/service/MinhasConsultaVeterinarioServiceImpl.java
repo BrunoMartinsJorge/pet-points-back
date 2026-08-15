@@ -133,13 +133,21 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         consulta.setFinalizadoEm(LocalDateTime.now());
         consulta.setResumoConsulta(form.getResumo());
         this.registrarItensCobranca(consulta, form.getItens(), veterinario);
-        consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta));
+        double valorEmProdutos = this.gerarValorAdicionalProdutosUsados(form.getItens());
+        double valorConsulta = consulta.getTipoConsulta().getValor() + valorEmProdutos;
+        consulta.setPagamento(this.gerarCobrancaDaConsulta(consulta, valorConsulta));
 
         consulta = this.consultaRepository.save(consulta);
         log.info("Consulta finalizada com sucesso: ID {} - {}", idConsulta, LocalDateTime.now());
         this.logsService.registrarLog(veterinario, TipoLogEnum.CONSULTA_FINALIZADA);
         this.enviarNotificacaoCliente(consulta);
         log.info("Notificações enviadas para cliente!");
+    }
+
+    private double gerarValorAdicionalProdutosUsados(List<ItemCobrancaForm> itens) {
+        List<Double> produtos = this.produtoRepository.findAllByIdIn(itens.stream().map(ItemCobrancaForm::getIdProduto).toList()).stream().map(ProdutoModel::getValorUnitario).toList();
+        if (produtos.isEmpty()) return 0;
+        return produtos.stream().reduce(Double::sum).orElse(0.0);
     }
 
     /**
@@ -199,12 +207,12 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
      * O valor cobrado é o do tipo de consulta somado aos itens lançados pelo
      * veterinário na finalização.
      */
-    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta) {
+    private PagamentoModel gerarCobrancaDaConsulta(ConsultaModel consulta, double valorConsulta) {
         TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
                 ? consulta.getFormaPagamento()
                 : TipoPagamentoEnum.DINHEIRO;
 
-        BigDecimal valor = consulta.valorTotalCobranca();
+        BigDecimal valor = BigDecimal.valueOf(valorConsulta);
         PagamentoModel pagamento = new PagamentoModel();
 
         if (formaPagamento == TipoPagamentoEnum.PIX) {
@@ -249,9 +257,8 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
                 complemento
         );
 
-        if (conteudo.length() > 250) {
-            conteudo = conteudo.substring(0, 250);
-        }
+        if (conteudo.length() > 255)
+            conteudo = conteudo.substring(0, 250).concat("...");
 
         NovaNotificacaoForm form = new NovaNotificacaoForm(
                 consulta.getSolicitante().getId(),
