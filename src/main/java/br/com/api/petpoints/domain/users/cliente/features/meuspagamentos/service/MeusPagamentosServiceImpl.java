@@ -15,15 +15,19 @@ import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
+import com.stripe.model.checkout.Session;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -112,5 +116,29 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
             }
             return null;
         }
+    }
+
+    @Transactional
+    public PagamentoDto.StatusPagamentoResponse sincronizarCheckoutPorSessao(String sessionId) {
+
+        PagamentoModel pagamento = pagamentoRepository.findByIdPagamentoExterno(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Pagamento não encontrado para a sessão: " + sessionId));
+
+        Session session = this.pagamentoService.sincronizarCheckoutStripe(pagamento);
+
+        return new PagamentoDto.StatusPagamentoResponse(
+                pagamento.getId(),
+                session.getId(),
+                pagamento.getStatusPagamento().name(),
+                session.getStatus(),        // complete / expired / open
+                session.getPaymentStatus()  // paid / unpaid / no_payment_required
+        );
+    }
+
+    public Map<String, String> iniciarCheckout(Long idUsuario, Long idPagamento) {
+        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
+        String url = this.pagamentoService.iniciarCheckoutStripe(idPagamento, usuario);
+        return Map.of("checkoutUrl", url);
     }
 }

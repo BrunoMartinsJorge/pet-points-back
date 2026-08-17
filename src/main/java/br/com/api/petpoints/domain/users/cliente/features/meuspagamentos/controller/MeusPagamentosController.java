@@ -8,6 +8,9 @@ import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.service
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.MinhasConsultasDto;
 import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;
 import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
+import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.utils.TokenUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/cliente/pagamentos")
@@ -52,10 +56,19 @@ public class MeusPagamentosController {
         return ResponseEntity.ok().body(this.meusPagamentosService.listarHistoricoPagamentos(token.getIdUsuario()));
     }
 
-    /*@GetMapping("/detalhes-pagamento/{idPagamento}")
-    public ResponseEntity<PagamentoConsultaDto> buscarDetalhesPagamento(@PathVariable Long idPagamento) {
-        return ResponseEntity.ok().body(this.meusPagamentosService.buscarDetalhesPagamentoAtendente(idPagamento));
-    }*/
+    /** Cliente clica "Efetuar Pagamento" -> gera a Checkout Session e devolve a URL. */
+    @PostMapping("/{idPagamento}/checkout")
+    public ResponseEntity<Map<String, String>> iniciarCheckout(
+            HttpServletRequest request,
+            @PathVariable Long idPagamento) {
+        return ResponseEntity.ok().body(this.meusPagamentosService.iniciarCheckout(TokenUtils.getIdUsuario(request), idPagamento));
+    }
+
+    @GetMapping("/checkout/status")
+    public ResponseEntity<PagamentoDto.StatusPagamentoResponse> statusPorSessao(
+            @RequestParam String sessionId) {
+        return ResponseEntity.ok(this.meusPagamentosService.sincronizarCheckoutPorSessao(sessionId));
+    }
 
     @GetMapping("/consulta-pagamento/{idConsulta}")
     public ResponseEntity<MinhasConsultasDto> buscarDetalhesConsultaPagamento(@PathVariable Long idConsulta) {

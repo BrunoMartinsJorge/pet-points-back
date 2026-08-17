@@ -7,13 +7,21 @@ import br.com.api.petpoints.shared.features.notificacoes.controller.Notificacoes
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.features.payment.forms.CriarPagamentoCartaoStripeForm;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
 import br.com.api.petpoints.shared.repository.PagamentoRepository;
+import com.stripe.exception.EventDataObjectDeserializationException;
+import com.stripe.model.Event;
+import com.stripe.model.EventDataObjectDeserializer;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
+import com.stripe.model.checkout.Session;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -22,25 +30,18 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PagamentoService {
 
     private final MercadoPagoService mercadoPagoService;
     private final PagamentoRepository pagamentoRepository;
     private final ConsultaRepository consultaRepository;
     private final NotificacoesController notificacoesController;
-
-    public PagamentoService(MercadoPagoService mercadoPagoService,
-                            PagamentoRepository pagamentoRepository,
-                            ConsultaRepository consultaRepository,
-                            NotificacoesController notificacoesController) {
-        this.mercadoPagoService = mercadoPagoService;
-        this.pagamentoRepository = pagamentoRepository;
-        this.consultaRepository = consultaRepository;
-        this.notificacoesController = notificacoesController;
-    }
+    private final StripeService stripeService;
 
     /**
      * Gera (ou regenera) uma cobrança PIX no Mercado Pago para um pagamento.
@@ -206,15 +207,66 @@ public class PagamentoService {
                     return new EntityNotFoundException("Pagamento não encontrado: " + pagamentoId);
                 });
 
-        MercadoPagoDto.OrderResponse order = sincronizarComGateway(pagamento);
+        if (pagamento.getIdPagamentoExterno() == null) {
+            return new PagamentoDto.StatusPagamentoResponse(
+                    pagamento.getId(),
+                    null,
+                    pagamento.getStatusPagamento().name(),
+                    null,
+                    null);
+        }
 
+        if (pagamento.getTipoPagamento() == TipoPagamentoEnum.PIX) {
+            MercadoPagoDto.OrderResponse order = sincronizarComGateway(pagamento);
+            return new PagamentoDto.StatusPagamentoResponse(
+                    pagamento.getId(),
+                    order.id(),
+                    pagamento.getStatusPagamento().name(),
+                    order.status(),
+                    order.statusDetail());
+        }
+
+        Session session = sincronizarCheckoutStripe(pagamento);
         return new PagamentoDto.StatusPagamentoResponse(
                 pagamento.getId(),
-                order.id(),
+                session.getId(),
                 pagamento.getStatusPagamento().name(),
-                order.status(),
-                order.statusDetail()
+                session.getStatus(),
+                session.getPaymentStatus()
         );
+    }
+
+    @Transactional
+    public Session sincronizarCheckoutStripe(PagamentoModel pagamento) {
+
+        log.info("Consultando Checkout Session do pagamento {}.", pagamento.getId());
+
+        Session session = stripeService.buscarCheckoutSession(pagamento.getIdPagamentoExterno());
+
+        StatusPagamentoEnum statusAnterior = pagamento.getStatusPagamento();
+        StatusPagamentoEnum novoStatus = mapearStatusCheckout(session);
+
+        if (statusAnterior != novoStatus) {
+            pagamento.setStatusPagamento(novoStatus);
+            if (novoStatus == StatusPagamentoEnum.APROVADO && pagamento.getDataPagamento() == null) {
+                pagamento.setDataPagamento(LocalDateTime.now());
+            }
+            pagamentoRepository.save(pagamento);
+            notificarClienteMudancaStatus(pagamento, novoStatus);
+            log.info("Status do pagamento {} atualizado: {} -> {}", pagamento.getId(), statusAnterior, novoStatus);
+        }
+
+        return session;
+    }
+
+    private StatusPagamentoEnum mapearStatusCheckout(Session session) {
+        if ("complete".equals(session.getStatus()) && "paid".equals(session.getPaymentStatus())) {
+            return StatusPagamentoEnum.APROVADO;
+        }
+        if ("expired".equals(session.getStatus())) {
+            return StatusPagamentoEnum.CANCELADO;
+        }
+        return StatusPagamentoEnum.PENDENTE;
     }
 
     /**
@@ -303,7 +355,7 @@ public class PagamentoService {
      * status muda para um estado final (aprovado, recusado, cancelado, devolvido).
      *
      * @param pagamento Pagamento persistido.
-     * @param order Ordem retornada pela API do Mercado Pago.
+     * @param order     Ordem retornada pela API do Mercado Pago.
      */
     private void atualizarPagamento(PagamentoModel pagamento,
                                     MercadoPagoDto.OrderResponse order) {
@@ -358,10 +410,10 @@ public class PagamentoService {
             if (consulta.getSolicitante() == null) return;
 
             String mensagem = switch (novoStatus) {
-                case APROVADO -> "Pagamento via PIX confirmado com sucesso!";
-                case RECUSADO -> "O pagamento via PIX foi recusado.";
-                case CANCELADO -> "O pagamento via PIX foi cancelado.";
-                case DEVOLVIDO -> "O pagamento via PIX foi devolvido.";
+                case APROVADO -> "Pagamento via " + pagamento.getTipoPagamento() + " confirmado com sucesso!";
+                case RECUSADO -> "O pagamento via " + pagamento.getTipoPagamento() + " foi recusado.";
+                case CANCELADO -> "O pagamento via " + pagamento.getTipoPagamento() + " foi cancelado.";
+                case DEVOLVIDO -> "O pagamento via " + pagamento.getTipoPagamento() + " foi devolvido.";
                 default -> "O status do seu pagamento foi atualizado.";
             };
 
@@ -429,5 +481,150 @@ public class PagamentoService {
      */
     private String formatarValor(BigDecimal valor) {
         return valor.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private StatusPagamentoEnum mapearStatusStripe(String status) {
+        if (status == null) return StatusPagamentoEnum.PENDENTE;
+        return switch (status) {
+            case "succeeded" -> StatusPagamentoEnum.APROVADO;
+            case "canceled" -> StatusPagamentoEnum.CANCELADO;
+            case "requires_payment_method" -> StatusPagamentoEnum.RECUSADO; // cartão falhou, pede outro
+            case "processing", "requires_action", "requires_confirmation" -> StatusPagamentoEnum.PENDENTE;
+            default -> StatusPagamentoEnum.PENDENTE;
+        };
+    }
+
+    @Transactional
+    public PaymentIntent iniciarPagamentoCartaoStripe(PagamentoModel pagamento,
+                                                      CriarPagamentoCartaoStripeForm form,
+                                                      UsuarioModel emitidoPor) {
+
+        long centavos = form.getValor().movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+
+        PaymentIntent pi = stripeService.criarPagamentoIntent(centavos, "brl", form.getDescricao(), form.getExternalReference());
+
+        pagamento.setValorPagamento(form.getValor());
+        pagamento.setIdPagamentoExterno(pi.getId());
+        pagamento.setTipoPagamento(TipoPagamentoEnum.CARTAO);
+        pagamento.setStatusPagamento(mapearStatusStripe(pi.getStatus()));
+        pagamento.setDataLimitePagamento(null);
+        pagamento.setMotivoIndeferimento(null);
+        pagamento.setAprovadoPor(null);
+        pagamento.setDataPagamento(null);
+        if (emitidoPor != null) pagamento.setEmitidoPor(emitidoPor);
+
+        pagamentoRepository.save(pagamento);
+        return pi;
+    }
+
+    @Transactional
+    public String iniciarCheckoutStripe(Long pagamentoId, UsuarioModel solicitante) {
+
+        PagamentoModel pagamento = pagamentoRepository.findById(pagamentoId)
+                .orElseThrow(() -> new EntityNotFoundException("Pagamento não encontrado: " + pagamentoId));
+
+        // trava: não gera checkout de algo já aprovado
+        if (pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO) {
+            throw new IllegalStateException("Este pagamento já foi aprovado.");
+        }
+
+        long centavos = pagamento.getValorPagamento()
+                .movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+
+        String descricao = "Pet Points - pagamento #" + pagamento.getId();
+        String email = solicitante.getEmail(); // opcional: solicitante.getEmail(), se existir no seu model
+
+        Session session = stripeService.criarCheckoutSession(
+                centavos, "brl", descricao,
+                String.valueOf(pagamento.getId()),   // client_reference_id
+                email);
+
+        pagamento.setIdPagamentoExterno(session.getId());   // cs_...
+        pagamento.setTipoPagamento(TipoPagamentoEnum.CARTAO);
+        pagamento.setStatusPagamento(StatusPagamentoEnum.PENDENTE);
+        pagamento.setDataLimitePagamento(LocalDateTime.now().plusHours(24)); // sessão expira ~24h por padrão
+        pagamentoRepository.save(pagamento);
+
+        return session.getUrl(); // é pra cá que o front redireciona
+    }
+
+    @Transactional
+    public void processarWebhookStripe(String payloadCru, String sigHeader) {
+        Event event = stripeService.validarExtrairEvento(payloadCru, sigHeader);
+        log.info("Webhook Stripe. Tipo: {}, Id: {}", event.getType(), event.getId());
+
+        switch (event.getType()) {
+            case "checkout.session.completed",
+                 "checkout.session.async_payment_succeeded" -> concluirCheckout(event, true);
+            case "checkout.session.expired",
+                 "checkout.session.async_payment_failed" -> concluirCheckout(event, false);
+            default -> log.debug("Evento Stripe ignorado: {}", event.getType());
+        }
+    }
+
+    private void concluirCheckout(Event event, boolean sucesso) {
+        StripeObject obj = extrairObjeto(event);
+        if (!(obj instanceof Session session)) {
+            log.warn("Evento {} sem Session desserializável.", event.getId());
+            return;
+        }
+
+        pagamentoRepository.findByIdPagamentoExterno(session.getId())
+                .ifPresentOrElse(pagamento -> {
+                    StatusPagamentoEnum statusAnterior = pagamento.getStatusPagamento();
+
+                    StatusPagamentoEnum novoStatus;
+                    if (sucesso && "paid".equals(session.getPaymentStatus())) {
+                        novoStatus = StatusPagamentoEnum.APROVADO;
+                    } else if (!sucesso) {
+                        novoStatus = StatusPagamentoEnum.CANCELADO; // expirou ou async falhou
+                    } else {
+                        novoStatus = StatusPagamentoEnum.PENDENTE;  // completed mas ainda "unpaid" (fluxo async)
+                    }
+
+                    pagamento.setStatusPagamento(novoStatus);
+                    if (novoStatus == StatusPagamentoEnum.APROVADO && pagamento.getDataPagamento() == null) {
+                        pagamento.setDataPagamento(LocalDateTime.now());
+                    }
+                    pagamentoRepository.save(pagamento);
+
+                    if (statusAnterior != novoStatus) {
+                        notificarClienteMudancaStatus(pagamento, novoStatus);
+                    }
+                }, () -> log.warn("Checkout Session {} sem pagamento correspondente.", session.getId()));
+    }
+
+
+    private StripeObject extrairObjeto(Event event) {
+        EventDataObjectDeserializer d = event.getDataObjectDeserializer();
+        if (d.getObject().isPresent()) {
+            return d.getObject().get();
+        }
+        try {
+            return d.deserializeUnsafe(); // fallback p/ divergência de versão de API
+        } catch (EventDataObjectDeserializationException e) {
+            log.error("Falha ao desserializar objeto do evento {}.", event.getId(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Extrai o PaymentIntent do evento. O getObject() pode vir vazio quando a versão
+     * de API do SDK diverge da da conta — daí o fallback com deserializeUnsafe().
+     */
+    private PaymentIntent extrairPaymentIntent(Event event) {
+        EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+        Optional<StripeObject> obj = deserializer.getObject();
+        if (obj.isPresent() && obj.get() instanceof PaymentIntent pi) {
+            return pi;
+        }
+        try {
+            if (deserializer.deserializeUnsafe() instanceof PaymentIntent pi) {
+                return pi;
+            }
+        } catch (EventDataObjectDeserializationException e) {
+            log.error("Falha ao desserializar objeto do evento {}.", event.getId(), e);
+        }
+        return null;
     }
 }

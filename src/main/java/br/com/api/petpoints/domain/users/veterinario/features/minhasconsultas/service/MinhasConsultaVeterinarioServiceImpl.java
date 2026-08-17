@@ -25,10 +25,7 @@ import br.com.api.petpoints.shared.models.MovimentacaoModel;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.ProdutoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
-import br.com.api.petpoints.shared.repository.ConsultaRepository;
-import br.com.api.petpoints.shared.repository.MovimentacaoRepository;
-import br.com.api.petpoints.shared.repository.ProdutoRepository;
-import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import br.com.api.petpoints.shared.repository.*;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +35,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +52,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final LogsServiceImpl logsService;
     private final NotificacoesController notificacoesController;
     private final PagamentoService pagamentoService;
+    private final PagamentoRepository pagamentoRepository;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -144,12 +143,6 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         log.info("Notificações enviadas para cliente!");
     }
 
-    private double gerarValorAdicionalProdutosUsados(List<ItemCobrancaForm> itens) {
-        List<Double> produtos = this.produtoRepository.findAllByIdIn(itens.stream().map(ItemCobrancaForm::getIdProduto).toList()).stream().map(ProdutoModel::getValorUnitario).toList();
-        if (produtos.isEmpty()) return 0;
-        return produtos.stream().reduce(Double::sum).orElse(0.0);
-    }
-
     /**
      * Lança os produtos consumidos durante a consulta (vacinas, medicamentos, etc.),
      * dando baixa no estoque e registrando uma movimentação de saída em nome do
@@ -211,26 +204,45 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         TipoPagamentoEnum formaPagamento = consulta.getFormaPagamento() != null
                 ? consulta.getFormaPagamento()
                 : TipoPagamentoEnum.DINHEIRO;
-
-        BigDecimal valor = BigDecimal.valueOf(valorConsulta);
         PagamentoModel pagamento = new PagamentoModel();
-
-        if (formaPagamento == TipoPagamentoEnum.PIX) {
-            PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
-                    valor,
-                    "Pagamento referente à consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
-                    consulta.getSolicitante().getEmail(),
-                    consulta.getSolicitante().getNome(),
-                    "CONSULTA_ID_" + consulta.getId(),
-                    consulta.getSolicitante().getCpf()
-            );
-            this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, consulta.getSolicitante());
-            return pagamento;
+        BigDecimal valor = consulta.valorTotalCobranca();
+        switch (formaPagamento) {
+            case PIX -> {
+                return this.gerarPagamentoPix(consulta, pagamento, BigDecimal.valueOf(valorConsulta));
+            }
+            case CARTAO -> {
+                return this.gerarPagamentoCartao(consulta, BigDecimal.valueOf(valorConsulta));
+            }
+            case DINHEIRO -> {
+                return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, consulta.getSolicitante());
+            }
+            default -> throw new IllegalArgumentException("Tipo de Pagamento não computado! " + formaPagamento);
         }
+    }
 
-        // Cartão (sem integração online) ou dinheiro: pagamento presencial,
-        // fica PENDENTE até o atendente confirmar o recebimento no balcão.
-        return this.pagamentoService.criarPagamentoPresencial(pagamento, formaPagamento, valor, consulta.getSolicitante());
+    protected PagamentoModel gerarPagamentoCartao(ConsultaModel consulta, BigDecimal valor) {
+        PagamentoModel pagamento = new PagamentoModel();
+        pagamento.setValorPagamento(valor);
+        pagamento.setDataLimitePagamento(
+                LocalDateTime.now()
+                        .plusWeeks(1)
+                        .with(LocalTime.MAX)
+        );
+        pagamento.setEmitidoPor(consulta.getSolicitante());
+        pagamento.setTipoPagamento(TipoPagamentoEnum.CARTAO);
+        return this.pagamentoRepository.save(pagamento);
+    }
+
+    private PagamentoModel gerarPagamentoPix(ConsultaModel consulta, PagamentoModel pagamento, BigDecimal valor) {
+        PagamentoDto.CriarPagamentoPixForm formPagamento = new PagamentoDto.CriarPagamentoPixForm(
+                valor,
+                "Pagamento referente à consulta na clínica Pet Points do cliente " + consulta.getSolicitante().getNome(),
+                consulta.getSolicitante().getEmail(),
+                consulta.getSolicitante().getNome(),
+                "CONSULTA_ID_" + consulta.getId(),
+                consulta.getSolicitante().getCpf());
+        this.pagamentoService.gerarCobrancaPix(pagamento, formPagamento, consulta.getSolicitante());
+        return pagamento;
     }
 
     private void enviarNotificacaoCliente(ConsultaModel consulta) {
@@ -257,8 +269,9 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
                 complemento
         );
 
-        if (conteudo.length() > 255)
-            conteudo = conteudo.substring(0, 250).concat("...");
+        if (conteudo.length() > 250) {
+            conteudo = conteudo.substring(0, 250);
+        }
 
         NovaNotificacaoForm form = new NovaNotificacaoForm(
                 consulta.getSolicitante().getId(),
@@ -269,6 +282,12 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
                 TiposNotificacoesEnum.CONSULTA
         );
         this.notificacoesController.enviarNotificacao(form);
+    }
+
+    private double gerarValorAdicionalProdutosUsados(List<ItemCobrancaForm> itens) {
+        List<Double> produtos = this.produtoRepository.findAllByIdIn(itens.stream().map(ItemCobrancaForm::getIdProduto).toList()).stream().map(ProdutoModel::getValorUnitario).toList();
+        if (produtos.isEmpty()) return 0;
+        return produtos.stream().reduce(Double::sum).orElse(0.0);
     }
 
     @Override
