@@ -7,6 +7,7 @@ import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dt
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.ItemCobrancaForm;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.PrescricaoForm;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.enums.TipoMovimentacaoEnum;
@@ -19,17 +20,14 @@ import br.com.api.petpoints.shared.features.notificacoes.controller.Notificacoes
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
-import br.com.api.petpoints.shared.models.ConsultaModel;
-import br.com.api.petpoints.shared.models.ItemConsultaModel;
-import br.com.api.petpoints.shared.models.MovimentacaoModel;
-import br.com.api.petpoints.shared.models.PagamentoModel;
-import br.com.api.petpoints.shared.models.ProdutoModel;
-import br.com.api.petpoints.shared.models.UsuarioModel;
+import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
+import br.com.api.petpoints.shared.utils.RelatoriosUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -53,6 +51,7 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final NotificacoesController notificacoesController;
     private final PagamentoService pagamentoService;
     private final PagamentoRepository pagamentoRepository;
+    private final RelatoriosUtils relatoriosUtils;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -127,6 +126,9 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
             throw new IllegalArgumentException("O resumo da consulta é obrigatório para finalizá-la!");
 
         UsuarioModel veterinario = this.getUsuarioPorId(idUsuario);
+
+        if (consulta.getVeterinario() != veterinario)
+            throw new IllegalArgumentException("Você não tem permissão para alterar essa consulta!");
 
         consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setFinalizadoEm(LocalDateTime.now());
@@ -291,7 +293,12 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     }
 
     @Override
-    public Object gerarPrescricao(Long idUsuario, Long idConsulta) {
+    public Object gerarPrescricao(Long idUsuario, PrescricaoForm form) {
+        UsuarioModel veterinario = this.getUsuarioPorId(idUsuario);
+        ConsultaModel consulta = this.getConsultaPorId(form.getIdConsulta());
+        if (!veterinario.equals(consulta.getVeterinario())) throw new IllegalAccessException("Você não é o responsável por está consulta!");
+        PrescricaoModel prescricao = new PrescricaoModel();
+        prescricao.setConsulta(consulta);
         return null;
     }
 }

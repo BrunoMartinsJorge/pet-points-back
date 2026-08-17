@@ -5,6 +5,7 @@ import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dt
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.PrescricaoForm;
 
 import java.util.List;
 
@@ -17,5 +18,5 @@ public interface MinhasConsultaVeterinarioService {
     List<ProdutoCobrancaDto> listarProdutosParaCobranca();
     void iniciarConsulta(Long idUsuario, Long idConsulta);
     void finalizarConsulta(Long idUsuario, Long idConsulta, FinalizarConsultaForm form);
-    Object gerarPrescricao(Long idUsuario, Long idConsulta);
+    Object gerarPrescricao(Long idUsuario, PrescricaoForm form);
 }

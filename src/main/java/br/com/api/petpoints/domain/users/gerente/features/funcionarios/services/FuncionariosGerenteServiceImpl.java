@@ -186,6 +186,8 @@ public class FuncionariosGerenteServiceImpl implements FuncionariosGerenteServic
         usuario.setPermissao(usuario.getPermissao() != form.getPermissao() ? form.getPermissao() : usuario.getPermissao());
         usuario.setGenero(usuario.getGenero() != form.getGenero() ? form.getGenero() : usuario.getGenero());
         usuario.setDataNascimento(usuario.getDataNascimento() != form.getDataNascimento() ? form.getDataNascimento() : usuario.getDataNascimento());
+        if (!Objects.equals(usuario.getCrmv(), form.getCrmv()) && usuario.getPermissao().equals(TipoUsuario.V))
+            usuario.setCrmv(form.getCrmv());
         if (file != null && !file.isEmpty()) {
             UUID imagemAntiga = usuario.getImagem();
             UUID novaImagem = this.salvarArquivo(file);

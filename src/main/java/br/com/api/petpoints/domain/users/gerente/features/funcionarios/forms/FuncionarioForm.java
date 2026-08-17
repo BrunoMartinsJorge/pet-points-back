@@ -30,4 +30,5 @@ public class FuncionarioForm {
     @NotNull(message = "O campo 'permissao' não pode estar nulo!")
     private TipoUsuario permissao;
     private Long especializacao;
+    private String crmv;
 }
