@@ -60,6 +60,7 @@ public class ConfigSecurity {
                         .requestMatchers("/gerente-atendente/**").hasAnyAuthority("RULE_REST_ATENDENTE", "RULE_REST_GERENTE")
 
                         .requestMatchers("/api/pagamentos/webhook").permitAll()
+                        .requestMatchers("/api/pagamentos/stripe/webhook").permitAll()
 
                         .anyRequest().authenticated()
                 )

@@ -28,11 +28,11 @@ public class PagamentosPendentesDto {
 
     public PagamentosPendentesDto(ConsultaModel consulta) {
         this.id = consulta.getPagamento().getId();
-        this.dataLimitePagamento = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getPagamento().getDataLimitePagamento());
+        this.dataLimitePagamento = consulta.getPagamento().getDataLimitePagamento() != null ? LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getPagamento().getDataLimitePagamento()) : null;
         this.tipoPagamento = consulta.getPagamento().getTipoPagamento();
         this.statusPagamento = consulta.getPagamento().getStatusPagamento();
         this.valor = consulta.getPagamento().getValorPagamento();
-        this.atrasado = LocalDateTime.now().isAfter(consulta.getPagamento().getDataLimitePagamento());
+        this.atrasado = consulta.getPagamento().getDataLimitePagamento() != null && LocalDateTime.now().isAfter(consulta.getPagamento().getDataLimitePagamento());
     }
 
     public static List<PagamentosPendentesDto> convert(List<ConsultaModel> consultas) {

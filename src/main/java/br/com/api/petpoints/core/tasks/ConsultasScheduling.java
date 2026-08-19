@@ -27,9 +27,9 @@ public class ConsultasScheduling {
         if (!consultas.isEmpty()) {
             for (ConsultaModel consulta : consultas) {
                 if (consulta.getPagamento() == null) return;
-                if (!consulta.getFormaPagamento().equals(TipoPagamentoEnum.PIX)) return;
+                if (!consulta.getFormaPagamento().equals(TipoPagamentoEnum.PIX) || consulta.getPagamento().getIdPagamentoExterno() == null) return;
                 PagamentoDto.StatusPagamentoResponse response = this.pagamentoService.consultarStatus(consulta.getPagamento().getId());
-                log.info("Atualizando status com task de rotina da consulta {} - ORDER ID {} - Status do MP {}", consulta.getId(), response.orderId(), response.statusMercadoPago());
+                log.info("Atualizando status com task de rotina da consulta {} - ORDER ID {} - Status do MP {}", consulta.getId(), response.orderId(), response.statusGateway());
             }
         }
     }

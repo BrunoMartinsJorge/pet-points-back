@@ -38,7 +38,8 @@ public class SecurityFilter extends OncePerRequestFilter {
                 "/autenticacao/enviar-codigo-alterar-senha",
                 "/autenticacao/validar-codigo-alterar-senha",
                 "/autenticacao/redefinir-senha",
-                "/pagamentos/webhook"
+                "/pagamentos/webhook",
+                "/pagamentos/stripe/webhook"
         );
         if (path.contains("/ws") || publicEndpoints.contains(path) || path.startsWith("/arquivos") || path.contains("imagem") || path.contains("/webhook")) {
             filterChain.doFilter(request, response);

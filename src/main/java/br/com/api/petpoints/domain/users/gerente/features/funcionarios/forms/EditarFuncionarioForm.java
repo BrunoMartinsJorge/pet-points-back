@@ -16,4 +16,5 @@ public class EditarFuncionarioForm {
     private String telefone;
     private TipoUsuario permissao;
     private LocalDate dataNascimento;
+    private String crmv;
 }

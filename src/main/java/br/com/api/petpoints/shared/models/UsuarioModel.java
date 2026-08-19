@@ -75,6 +75,8 @@ public class UsuarioModel implements UserDetails {
     @Column(name = "status_conta")
     private StatusPerfilEnum statusPerfilEnum = StatusPerfilEnum.A;
 
+    private String crmv;
+
     public UsuarioModel(String email, String senhaEncoded, TipoUsuario tipoUsuario) {
         this.email = email;
         this.senha = senhaEncoded;
@@ -101,6 +103,8 @@ public class UsuarioModel implements UserDetails {
         this.genero = form.getGenero();
         this.nome = form.getNome();
         this.telefone = form.getTelefone();
+        if (form.getPermissao().equals(TipoUsuario.V))
+            this.crmv = form.getCrmv();
     }
 
     @Override

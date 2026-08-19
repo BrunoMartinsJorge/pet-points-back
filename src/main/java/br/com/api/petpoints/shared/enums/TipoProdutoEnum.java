@@ -10,7 +10,9 @@ public enum TipoProdutoEnum implements Serializable {
     BRINQUEDO("Brinquedo"),
     COSMETICO("Cosmético"),
     ROUPA("Roupa"),
-    HIGIENE("Higiene");
+    HIGIENE("Higiene"),
+    MEDICAMENTO("Medicamento"),
+    VACINA("Vacina");
 
     private final String descricao;
     TipoProdutoEnum(String descricao) {

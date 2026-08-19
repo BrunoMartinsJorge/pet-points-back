@@ -15,15 +15,19 @@ import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.*;
+import com.stripe.model.checkout.Session;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -73,7 +77,10 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
 
     @Override
     public List<PagamentosDto> listarHistoricoPagamentos(Long idUsuario) {
-        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta -> !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO) && !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.PENDENTE)).toList();
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_Id(idUsuario).stream().filter(consulta ->
+                consulta.getPagamento() != null &&
+                        !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.REPROVADO) &&
+                        !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.PENDENTE)).toList();
         return PagamentosDto.convert(consultas);
     }
 
@@ -82,6 +89,7 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         return new MinhasConsultasDto(consulta);
     }
+
     @Override
     @Transactional
     public void alterarFormaPagamento(Long idPagamento, TipoPagamentoEnum novaForma) {
@@ -110,23 +118,27 @@ public class MeusPagamentosServiceImpl implements MeusPagamentosService {
         }
     }
 
-    private UUID salvarArquivo(MultipartFile form) {
-        if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
-        List<String> tiposPermitidos = List.of(
-                "image/png",
-                "image/jpeg",
-                "application/pdf"
+    @Transactional
+    public PagamentoDto.StatusPagamentoResponse sincronizarCheckoutPorSessao(String sessionId) {
+
+        PagamentoModel pagamento = pagamentoRepository.findByIdPagamentoExterno(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Pagamento não encontrado para a sessão: " + sessionId));
+
+        Session session = this.pagamentoService.sincronizarCheckoutStripe(pagamento);
+
+        return new PagamentoDto.StatusPagamentoResponse(
+                pagamento.getId(),
+                session.getId(),
+                pagamento.getStatusPagamento().name(),
+                session.getStatus(),        // complete / expired / open
+                session.getPaymentStatus()  // paid / unpaid / no_payment_required
         );
-        if (!tiposPermitidos.contains(form.getContentType()))
-            throw new RuntimeException("Tipo inválido");
-        ArquivosModel arquivo = new ArquivosModel();
-        try {
-            arquivo.setConteudo(form.getBytes());
-            arquivo.setNome(form.getOriginalFilename());
-            arquivo.setTipo(form.getContentType());
-            return this.arquivoRepository.save(arquivo).getId();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    }
+
+    public Map<String, String> iniciarCheckout(Long idUsuario, Long idPagamento) {
+        UsuarioModel usuario = this.getUsuarioPorId(idUsuario);
+        String url = this.pagamentoService.iniciarCheckoutStripe(idPagamento, usuario);
+        return Map.of("checkoutUrl", url);
     }
 }

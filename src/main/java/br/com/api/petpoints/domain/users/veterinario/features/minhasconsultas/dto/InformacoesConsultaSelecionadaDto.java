@@ -8,7 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +30,10 @@ public class InformacoesConsultaSelecionadaDto {
     private LocalDateTime dataFinalizacao;
     private String atendente;
     private StatusConsultaEnum status;
+    private BigDecimal valorConsulta;
+    private BigDecimal valorItens;
+    private BigDecimal valorTotal;
+    private List<ItemCobrancaConsultaDto> itens;
 
     public InformacoesConsultaSelecionadaDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -42,5 +48,9 @@ public class InformacoesConsultaSelecionadaDto {
         this.dataFinalizacao = consulta.getFinalizadoEm();
         this.atendente = consulta.getAtendente() != null ? consulta.getAtendente().getNome() : "";
         this.status = consulta.getStatus();
+        this.valorConsulta = consulta.valorConsulta();
+        this.valorItens = consulta.valorItensCobranca();
+        this.valorTotal = consulta.valorTotalCobranca();
+        this.itens = ItemCobrancaConsultaDto.convert(consulta.getItensCobranca());
     }
 }

@@ -47,7 +47,7 @@ public final class PagamentoDto {
             Long pagamentoId,
             String orderId,
             String status,
-            String statusMercadoPago,
+            String statusGateway,
             String statusDetalhe
     ) {
     }

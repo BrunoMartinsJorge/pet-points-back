@@ -4,11 +4,14 @@ import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
 import br.com.api.petpoints.shared.features.payment.dto.MercadoPagoDto;
 import br.com.api.petpoints.shared.features.payment.dto.PagamentoDto;
+import br.com.api.petpoints.shared.features.payment.forms.CriarPagamentoCartaoStripeForm;
 import br.com.api.petpoints.shared.features.payment.service.MercadoPagoService;
 import br.com.api.petpoints.shared.features.payment.service.PagamentoService;
+import br.com.api.petpoints.shared.features.payment.service.StripeService;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
+import com.stripe.model.PaymentIntent;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -74,7 +77,29 @@ public class PagamentoController {
 
     @ExceptionHandler(MercadoPagoService.MercadoPagoException.class)
     public ResponseEntity<Map<String, String>> erroMercadoPago(MercadoPagoService.MercadoPagoException e) {
-        // 502: o problema veio de um serviço externo (o MP), não do cliente.
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("erro", e.getMessage()));
+    }
+
+    @PostMapping("/stripe/intent")
+    public ResponseEntity<Map<String, String>> criarIntent(
+            HttpServletRequest request,
+            @RequestBody @Valid CriarPagamentoCartaoStripeForm form) {
+        TokenModel token = new TokenModel(request.getHeader("Authorization"));
+        UsuarioModel usuario = usuarioRepository.findById(token.getIdUsuario())
+                .orElseThrow(() -> new UsuarioNaoEncontrado("Usuário não encontrado!"));
+        PaymentIntent pi = pagamentoService.iniciarPagamentoCartaoStripe(new PagamentoModel(), form, usuario);
+        return ResponseEntity.ok(Map.of("clientSecret", pi.getClientSecret(), "paymentIntentId", pi.getId()));
+    }
+
+    /** Stripe chama aqui. Precisa do corpo CRU (String) pra assinatura bater. */
+    @PostMapping("/stripe/webhook")
+    public ResponseEntity<Void> webhookStripe(@RequestBody String payload,
+                                              @RequestHeader("Stripe-Signature") String assinatura) {
+        try {
+            pagamentoService.processarWebhookStripe(payload, assinatura);
+            return ResponseEntity.ok().build();
+        } catch (StripeService.StripeIntegracaoException e) {
+            return ResponseEntity.badRequest().build(); // assinatura inválida -> 400, Stripe não reprocessa
+        }
     }
 }

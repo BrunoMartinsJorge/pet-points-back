@@ -104,12 +104,9 @@ class UsuarioServiceTest {
         loginForm.setSenha("senha123");
     }
 
-    // ==================== TESTES DE REGISTRO ====================
-
     @Test
     @DisplayName("Deve registrar novo usuário com sucesso")
     void testRegistrarUsuarioComSucesso() {
-        // Arrange
         MultipartFile arquivo = mock(MultipartFile.class);
         when(arquivo.isEmpty()).thenReturn(true);
         when(usuarioRepository.existsByEmailOrCpf(anyString(), anyString())).thenReturn(false);
@@ -117,10 +114,8 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(UsuarioModel.class))).thenReturn(usuarioTeste);
         when(tokenService.gerarToken(any(UsuarioModel.class))).thenReturn("token123");
 
-        // Act
         var resultado = usuarioService.registrarUsuario(registroForm, arquivo);
 
-        // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getToken()).isEqualTo("token123");
         verify(usuarioRepository).save(any(UsuarioModel.class));
@@ -130,11 +125,9 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando usuário já cadastrado")
     void testRegistrarUsuarioJaCadastrado() {
-        // Arrange
         MultipartFile arquivo = mock(MultipartFile.class);
         when(usuarioRepository.existsByEmailOrCpf(anyString(), anyString())).thenReturn(true);
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.registrarUsuario(registroForm, arquivo))
                 .isInstanceOf(UsuarioJaCadastrado.class)
                 .hasMessage("Usuário já cadastrado!");
@@ -144,7 +137,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve salvar usuário com arquivo de imagem")
     void testRegistrarUsuarioComImagem() throws IOException {
-        // Arrange
         MultipartFile arquivo = mock(MultipartFile.class);
         UUID imagemId = UUID.randomUUID();
 
@@ -162,20 +154,15 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(UsuarioModel.class))).thenReturn(usuarioTeste);
         when(tokenService.gerarToken(any(UsuarioModel.class))).thenReturn("token123");
 
-        // Act
         var resultado = usuarioService.registrarUsuario(registroForm, arquivo);
 
-        // Assert
         assertThat(resultado.getToken()).isEqualTo("token123");
         verify(arquivoRepository).save(any(ArquivosModel.class));
     }
 
-    // ==================== TESTES DE LOGIN ====================
-
     @Test
     @DisplayName("Deve fazer login com sucesso")
     void testLogarUsuarioComSucesso() {
-        // Arrange
         Authentication authentication = mock(Authentication.class);
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(true);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -183,10 +170,8 @@ class UsuarioServiceTest {
         when(authentication.getPrincipal()).thenReturn(usuarioTeste);
         when(tokenService.gerarToken(any(UsuarioModel.class))).thenReturn("token123");
 
-        // Act
         var resultado = usuarioService.logarUsuario(loginForm);
 
-        // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getToken()).isEqualTo("token123");
         verify(logsService).registrarLog(usuarioTeste, TipoLogEnum.LOGIN);
@@ -195,10 +180,8 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando usuário não encontrado no login")
     void testLogarUsuarioNaoEncontrado() {
-        // Arrange
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.logarUsuario(loginForm))
                 .isInstanceOf(UsuarioNaoEncontrado.class)
                 .hasMessage("Usuário não encontrado!");
@@ -208,7 +191,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando perfil está desabilitado")
     void testLogarUsuarioPerfilDesabilitado() {
-        // Arrange
         usuarioTeste.setStatusPerfilEnum(StatusPerfilEnum.D);
         Authentication authentication = mock(Authentication.class);
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(true);
@@ -216,19 +198,15 @@ class UsuarioServiceTest {
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(usuarioTeste);
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.logarUsuario(loginForm))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Seu perfil foi desabilitado. Por favor solicite por email uma reativação!");
         verify(logsService, never()).registrarLog(any(), any());
     }
 
-    // ==================== TESTES DE ALTERAÇÃO DE SENHA ====================
-
     @Test
     @DisplayName("Deve enviar código de alteração de senha com sucesso")
     void testEnviarCodigoAlteracaoSenhaComSucesso() {
-        // Arrange
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.of(usuarioTeste));
         when(templateEngine.process(anyString(), any())).thenReturn("<html>Código</html>");
 
@@ -237,10 +215,8 @@ class UsuarioServiceTest {
         when(tokenRecuperarSenhaRepository.save(any(TokenRecuperarSenhaModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
         usuarioService.enviarCodigoAlteracaoSenha("teste@email.com");
 
-        // Assert
         verify(usuarioRepository).findByEmail("teste@email.com");
         verify(mailSender).send(any(MimeMessage.class));
         verify(tokenRecuperarSenhaRepository).save(any(TokenRecuperarSenhaModel.class));
@@ -249,10 +225,8 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando usuário não encontrado no envio de código")
     void testEnviarCodigoUsuarioNaoEncontrado() {
-        // Arrange
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.enviarCodigoAlteracaoSenha("inexistente@email.com"))
                 .isInstanceOf(UsuarioNaoEncontrado.class);
         verify(mailSender, never()).send((SimpleMailMessage) any());
@@ -261,7 +235,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve validar código de alteração de senha com sucesso")
     void testValidarCodigoAlterarSenhaComSucesso() {
-        // Arrange
         TokenRecuperarSenhaModel token = new TokenRecuperarSenhaModel();
         token.setToken("ABC123");
         token.setExpires_at(LocalDateTime.now().plusMinutes(5));
@@ -273,10 +246,8 @@ class UsuarioServiceTest {
         when(tokenRecuperarSenhaRepository.save(any(TokenRecuperarSenhaModel.class)))
                 .thenReturn(token);
 
-        // Act
         boolean resultado = usuarioService.validarCodigoAlterarSenha("teste@email.com", "ABC123");
 
-        // Assert
         assertThat(resultado).isTrue();
         verify(tokenRecuperarSenhaRepository).save(token);
     }
@@ -284,7 +255,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando código está expirado")
     void testValidarCodigoExpirado() {
-        // Arrange
         TokenRecuperarSenhaModel token = new TokenRecuperarSenhaModel();
         token.setToken("ABC123");
         token.setExpires_at(LocalDateTime.now().minusMinutes(5));
@@ -294,7 +264,6 @@ class UsuarioServiceTest {
         when(tokenRecuperarSenhaRepository.findByUsuarioModel_IdAndToken(anyLong(), anyString()))
                 .thenReturn(Optional.of(token));
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.validarCodigoAlterarSenha("teste@email.com", "ABC123"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Código expirado!");
@@ -303,7 +272,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando código já foi utilizado")
     void testValidarCodigoJaUtilizado() {
-        // Arrange
         TokenRecuperarSenhaModel token = new TokenRecuperarSenhaModel();
         token.setToken("ABC123");
         token.setExpires_at(LocalDateTime.now().plusMinutes(5));
@@ -313,7 +281,6 @@ class UsuarioServiceTest {
         when(tokenRecuperarSenhaRepository.findByUsuarioModel_IdAndToken(anyLong(), anyString()))
                 .thenReturn(Optional.of(token));
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.validarCodigoAlterarSenha("teste@email.com", "ABC123"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Código já utilizado!");
@@ -322,7 +289,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve alterar senha com sucesso")
     void testAlterarSenhaComSucesso() {
-        // Arrange
         TokenRecuperarSenhaModel token = new TokenRecuperarSenhaModel();
         token.setToken("ABC123");
         token.setExpires_at(LocalDateTime.now().plusMinutes(5));
@@ -337,10 +303,8 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(UsuarioModel.class))).thenReturn(usuarioTeste);
         when(tokenRecuperarSenhaRepository.save(any(TokenRecuperarSenhaModel.class))).thenReturn(token);
 
-        // Act
         usuarioService.alterarSenha("teste@email.com", "novaSenha123", "ABC123");
 
-        // Assert
         ArgumentCaptor<UsuarioModel> usuarioCaptor = ArgumentCaptor.forClass(UsuarioModel.class);
         verify(usuarioRepository).save(usuarioCaptor.capture());
 
@@ -353,7 +317,6 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando nova senha é igual à anterior")
     void testAlterarSenhaIgualAnterior() {
-        // Arrange
         TokenRecuperarSenhaModel token = new TokenRecuperarSenhaModel();
         token.setToken("ABC123");
         token.setExpires_at(LocalDateTime.now().plusMinutes(5));
@@ -362,21 +325,16 @@ class UsuarioServiceTest {
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.of(usuarioTeste));
         when(tokenRecuperarSenhaRepository.findByUsuarioModel_IdAndToken(anyLong(), anyString()))
                 .thenReturn(Optional.of(token));
-        // Simula que a nova senha encriptada é igual à anterior
         when(passwordEncoder.encode("mesmoPassword")).thenReturn("senhaEncriptada");
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.alterarSenha("teste@email.com", "mesmoPassword", "ABC123"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("A nova senha não pode ser igual a anterior!");
     }
 
-    // ==================== TESTES DE BUSCA DE IMAGEM ====================
-
     @Test
     @DisplayName("Deve buscar imagem do usuário com sucesso")
     void testBuscarImagemUsuarioComSucesso() {
-        // Arrange
         UUID imagemId = UUID.randomUUID();
         ArquivosModel arquivo = new ArquivosModel();
         arquivo.setId(imagemId);
@@ -384,10 +342,8 @@ class UsuarioServiceTest {
 
         when(arquivoRepository.findById(imagemId)).thenReturn(Optional.of(arquivo));
 
-        // Act
         var resultado = usuarioService.buscarImagemUsuario(imagemId);
 
-        // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getId()).isEqualTo(imagemId);
         assertThat(resultado.getNome()).isEqualTo("foto.jpg");
@@ -396,27 +352,21 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando arquivo não encontrado")
     void testBuscarImagemNaoEncontrada() {
-        // Arrange
         UUID imagemId = UUID.randomUUID();
         when(arquivoRepository.findById(imagemId)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.buscarImagemUsuario(imagemId))
                 .isInstanceOf(ObjectNotFoundException.class)
                 .hasMessage("Arquivo não encontrado!");
     }
 
-    // ==================== TESTES DE VALIDAÇÃO DE ARQUIVO ====================
-
     @Test
     @DisplayName("Deve lançar exceção quando arquivo excede tamanho máximo")
     void testSalvarArquivoTamanhoExcedido() throws IOException {
-        // Arrange
         MultipartFile arquivo = mock(MultipartFile.class);
         when(arquivo.isEmpty()).thenReturn(false);
         when(arquivo.getSize()).thenReturn(6_000_000L);
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.registrarUsuario(registroForm, arquivo))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Arquivo passa de 5MB!");
@@ -425,13 +375,11 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando tipo de arquivo é inválido")
     void testSalvarArquivoTipoInvalido() throws IOException {
-        // Arrange
         MultipartFile arquivo = mock(MultipartFile.class);
         when(arquivo.isEmpty()).thenReturn(false);
         when(arquivo.getSize()).thenReturn(1_000_000L);
         when(arquivo.getContentType()).thenReturn("application/exe");
 
-        // Act & Assert
         assertThatThrownBy(() -> usuarioService.registrarUsuario(registroForm, arquivo))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Tipo inválido");

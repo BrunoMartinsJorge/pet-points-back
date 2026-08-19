@@ -12,4 +12,6 @@ public interface ProdutoRepository extends JpaRepository<ProdutoModel, Long> {
 
     @Query("SELECT u FROM ProdutoModel u WHERE u.quantidadeEstoque < u.quantidadeMinima")
     List<ProdutoModel> listarProdutosAbaixoDeEstoque();
+
+    List<ProdutoModel> findAllByIdIn(List<Long> ids);
 }

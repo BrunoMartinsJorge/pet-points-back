@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "tb_notificacao")
 public class NotificacaoModel {
 
     @Id

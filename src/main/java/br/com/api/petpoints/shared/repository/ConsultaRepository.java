@@ -13,18 +13,33 @@ import java.util.Optional;
 @Repository
 public interface ConsultaRepository extends JpaRepository<ConsultaModel, Long> {
     List<ConsultaModel> findAllBySolicitante_Id(Long id);
+
     List<ConsultaModel> findAllByPet_IdAndStatus(Long id, StatusConsultaEnum status);
+
     List<ConsultaModel> findAllBySolicitante_IdAndPagamentoIsNull(Long id);
+
     List<ConsultaModel> findAllBySolicitante_IdAndStatus(Long id, StatusConsultaEnum status);
+
     List<ConsultaModel> findAllByVeterinario_IdAndAvaliacaoIsNotNull(Long id);
+
     List<ConsultaModel> findAllByVeterinario_Id(Long id);
+
     List<ConsultaModel> findAllByAtendente_Id(Long id);
+
     List<ConsultaModel> findAllByStatus(StatusConsultaEnum status);
+
     List<ConsultaModel> findAllByPet_Id(Long id);
+
     List<ConsultaModel> findAllByPet_IdOrderByDataConsultaDesc(Long id);
+
     List<ConsultaModel> findAllByPagamentoIsNull();
+
+    List<ConsultaModel> findAllByPagamentoIsNotNull();
+
     Optional<ConsultaModel> findByPagamento_Id(Long idPagamento);
+
     List<ConsultaModel> findAllByPagamento_StatusPagamentoAndSolicitante_Id(StatusPagamentoEnum statusPagamento, Long idUsuario);
+
     boolean existsByPet_IdAndStatus(Long id, StatusConsultaEnum status);
 
     @Query("SELECT u FROM ConsultaModel u WHERE u.solicitante.id = ?1 and (u.status = 'APROVADA' or u.status = 'INICIADO')")
