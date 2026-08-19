@@ -19,6 +19,7 @@ import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -59,7 +60,19 @@ public class UsuarioServiceImpl implements UsuarioService {
         return this.usuarioRepository.findByEmail(email).orElseThrow(() -> new UsuarioNaoEncontrado("Usuário com Email: " + email + " não encontrado!"));
     }
 
+    /**
+     * Registrar novo cliente no sistema.
+     * <p>
+     *     Recebe um formulário do front e com base nas informações dele gera um novo registro no banco,
+     *     além de gerar um LOG para informar data/hora dessa ação.
+     * </p>
+     *
+     * @param registroForm  dados do cliente a serem registrados
+     * @param arquivo       {@code MultipartFile} para registrar a foto de usuário, e {@code null} para não adicionar
+     * @return TokenDto     Token de login do usuário
+     */
     @Override
+    @Transactional
     public TokenDto registrarUsuario(RegistroForm registroForm, MultipartFile arquivo) {
         if (usuarioRepository.existsByEmailOrCpf(registroForm.getEmail(), registroForm.getCpf()))
             throw new UsuarioJaCadastrado("Usuário já cadastrado!");
@@ -72,6 +85,17 @@ public class UsuarioServiceImpl implements UsuarioService {
         );
     }
 
+    /**
+     * Salva a foto de perfil do usuário
+     * <p>
+     *     Recebe dos métodos que o utilizam um {@code MultipartFile} para gerar registrar a foto de perfil.
+     *     Verifica se o arquivo não passa dos 5MB definidos como tamanho máximo e se o tipo do arquivo consta nos permitidos.
+     *     Retornando o identificador da imagem no banco de dados, sendo feita de um {@code UUID}.
+     * </p>
+     *
+     * @param form   {@code MultipartFile} para registrar a foto de usuário, e {@code null} para não adicionar
+     * @return UUID  Identificador da foto de perfil do cliente
+     */
     private UUID salvarArquivo(MultipartFile form) {
         if (form.getSize() > 5_000_000) throw new RuntimeException("Arquivo passa de 5MB!");
         List<String> tiposPermitidos = List.of(
@@ -92,26 +116,79 @@ public class UsuarioServiceImpl implements UsuarioService {
         }
     }
 
+    /**
+     * Realiza a autenticação do usuário.
+     *
+     * <p>O método recebe um {@code LoginForm} contendo o e-mail e a senha
+     * informados pelo usuário e executa as seguintes etapas:</p>
+     *
+     * <ol>
+     *     <li>Verifica se existe um usuário cadastrado com o e-mail informado;</li>
+     *     <li>
+     *         Caso o usuário não seja encontrado, lança
+     *         {@code UsuarioNaoEncontrado};
+     *     </li>
+     *     <li>
+     *         Realiza a autenticação utilizando o e-mail e a senha informados;
+     *     </li>
+     *     <li>
+     *         Gera o token de autenticação para o usuário autenticado;
+     *     </li>
+     *     <li>
+     *         Verifica se o perfil do usuário está desabilitado;
+     *     </li>
+     *     <li>
+     *         Caso o perfil esteja desabilitado, lança
+     *         {@code IllegalAccessException};
+     *     </li>
+     *     <li>Registra um log referente ao login realizado;</li>
+     *     <li>Retorna o token de autenticação.</li>
+     * </ol>
+     *
+     * @param loginForm formulário de login contendo o e-mail e a senha do usuário
+     * @return {@code TokenDto} contendo o token de autenticação gerado
+     * @throws UsuarioNaoEncontrado caso não exista usuário cadastrado com o e-mail informado
+     * @throws IllegalAccessException caso o perfil do usuário esteja desabilitado
+     */
     @Override
     public TokenDto logarUsuario(LoginForm loginForm) {
         if (!usuarioRepository.existsByEmail(loginForm.getEmail()))
             throw new UsuarioNaoEncontrado("Usuário não encontrado!");
+
         Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginForm.getEmail(), loginForm.getSenha())
+                new UsernamePasswordAuthenticationToken(
+                        loginForm.getEmail(),
+                        loginForm.getSenha()
+                )
         );
-        String token = tokenService.gerarToken((UsuarioModel) Objects.requireNonNull(auth.getPrincipal()));
+
+        String token = tokenService.gerarToken(
+                (UsuarioModel) Objects.requireNonNull(auth.getPrincipal())
+        );
+
         UsuarioModel usuario = (UsuarioModel) auth.getPrincipal();
+
         if (usuario.getStatusPerfilEnum().equals(StatusPerfilEnum.D))
-            throw new IllegalAccessException("Seu perfil foi desabilitado. Por favor solicite por email uma reativação!");
+            throw new IllegalAccessException(
+                    "Seu perfil foi desabilitado. Por favor solicite por email uma reativação!"
+            );
+
         logsService.registrarLog(
                 usuario,
                 TipoLogEnum.LOGIN
         );
-        return new TokenDto(
-                token
-        );
-    }
 
+        return new TokenDto(token);
+    }
+    /**
+     * Envia um código de alteração de senha
+     * <p>
+     *     Recebe um email {@code String} do front para enviar um código de verificação de email
+     *     Caso exista um usuário ele gera um 'código' alfanumérico e o envia
+     * </p>
+     *
+     * @param email  {@code String} Email para envio de código de confirmação
+     */
     @Override
     public void enviarCodigoAlteracaoSenha(String email) {
         UsuarioModel usuario = this.getUsuarioPorEmail(email);

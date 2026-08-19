@@ -56,7 +56,6 @@ public class MeusPagamentosController {
         return ResponseEntity.ok().body(this.meusPagamentosService.listarHistoricoPagamentos(token.getIdUsuario()));
     }
 
-    /** Cliente clica "Efetuar Pagamento" -> gera a Checkout Session e devolve a URL. */
     @PostMapping("/{idPagamento}/checkout")
     public ResponseEntity<Map<String, String>> iniciarCheckout(
             HttpServletRequest request,
