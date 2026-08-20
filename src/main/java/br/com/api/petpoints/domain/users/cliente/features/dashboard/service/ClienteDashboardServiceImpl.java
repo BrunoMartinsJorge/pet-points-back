@@ -5,6 +5,7 @@ import br.com.api.petpoints.domain.users.cliente.features.dashboard.dto.Consulta
 import br.com.api.petpoints.domain.users.cliente.features.dashboard.dto.PagamentosPendentesDto;
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
+import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
 import br.com.api.petpoints.shared.models.*;
 import br.com.api.petpoints.shared.repository.AtendimentoRepository;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
@@ -22,7 +23,7 @@ public class ClienteDashboardServiceImpl implements ClienteDashboardService {
 
     @Override
     public List<PagamentosPendentesDto> listarPagamentosPendentes(Long idUsuario) {
-        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.FINALIZADO);
+        List<ConsultaModel> consultas = this.consultaRepository.findAllBySolicitante_IdAndStatus(idUsuario, StatusConsultaEnum.FINALIZADO).stream().filter(consulta -> consulta.getPagamento() != null && !consulta.getPagamento().getStatusPagamento().equals(StatusPagamentoEnum.APROVADO)).toList();
         return PagamentosPendentesDto.convert(consultas);
     }
 
