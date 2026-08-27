@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.gerente.features.funcionarios.dto;
 
 import br.com.api.petpoints.shared.enums.GeneroEnum;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,7 @@ public class FuncionarioDto {
     private LocalDate dataNascimento;
     private String dataCadastro;
     private String permissao;
-    private String statusPerfil;
+    private StatusPerfilEnum statusPerfil;
     private UUID arquivo;
 
     public FuncionarioDto(UsuarioModel usuario) {
@@ -39,7 +40,7 @@ public class FuncionarioDto {
         this.dataNascimento = usuario.getDataNascimento();
         this.dataCadastro = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(usuario.getDataCadastro());
         this.permissao = usuario.getPermissao().getDescricao();
-        this.statusPerfil = usuario.getStatusPerfilEnum().getDescricao();
+        this.statusPerfil = usuario.getStatusPerfilEnum();
         this.arquivo = usuario.getImagem();
     }
 }
