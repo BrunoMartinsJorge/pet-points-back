@@ -1,6 +1,5 @@
 package br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service;
 
-import br.com.api.petpoints.domain.users.atendente.features.consultas.service.ConsultasAtendenteServiceImpl;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.*;
 import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.forms.ReagendamentoConsultaForm;
 import br.com.api.petpoints.domain.users.cliente.shared.dto.PagamentoConsultaDto;

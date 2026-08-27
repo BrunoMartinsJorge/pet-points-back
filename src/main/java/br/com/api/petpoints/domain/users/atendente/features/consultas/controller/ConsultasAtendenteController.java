@@ -4,9 +4,15 @@ import br.com.api.petpoints.core.token.TokenModel;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.AvaliacaoConsultaDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.ConsultasAtendenteDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.InformacoesPagamentoDto;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.OpcaoClienteConsultaDto;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.PendenciasFinanceirasClienteDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.IndeferirConsultaForm;
-import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.IndeferirPagamentoForm;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.RegistroConsultaAtendenteForm;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.service.ConsultasAtendenteServiceImpl;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.DiaConsultasVeterinarioDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.OpcoesPetConsultasDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.TiposConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.VeterinariosTipoConsultaDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +58,15 @@ public class ConsultasAtendenteController {
         return ResponseEntity.ok().body(this.consultasAtendenteService.listarConsultasComPagamentosPendentesDoCliente(idCliente));
     }
 
+    /**
+     * Situação financeira do cliente (cobranças em aberto e atrasadas), consultada
+     * pelo atendente antes de aprovar uma nova solicitação de consulta.
+     */
+    @GetMapping("/pendencias-financeiras/{idCliente}")
+    public ResponseEntity<PendenciasFinanceirasClienteDto> buscarPendenciasFinanceirasDoCliente(@PathVariable Long idCliente) {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.buscarPendenciasFinanceirasDoCliente(idCliente));
+    }
+
     @GetMapping("/pagamento/{idConsulta}")
     public ResponseEntity<InformacoesPagamentoDto> buscarPagamentoPorConsulta(@PathVariable Long idConsulta) {
         return ResponseEntity.ok().body(this.consultasAtendenteService.buscarInformacoesPagamento(idConsulta));
@@ -62,10 +77,35 @@ public class ConsultasAtendenteController {
         return ResponseEntity.ok().body(this.consultasAtendenteService.buscarAvaliacao(idConsulta));
     }
 
-    @PutMapping("/avaliar/{idConsulta}")
-    public ResponseEntity<Void> enviarAvaliacaoPagamento(HttpServletRequest request, @PathVariable Long idConsulta, @RequestBody IndeferirPagamentoForm form) {
+    @GetMapping("/registro/clientes")
+    public ResponseEntity<List<OpcaoClienteConsultaDto>> listarClientesParaRegistroDeConsulta() {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.listarClientesParaRegistro());
+    }
+
+    @GetMapping("/registro/pets/{idCliente}")
+    public ResponseEntity<List<OpcoesPetConsultasDto>> listarPetsDoClienteParaRegistroDeConsulta(@PathVariable Long idCliente) {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.listarPetsDoCliente(idCliente));
+    }
+
+    @GetMapping("/registro/tipos-consulta")
+    public ResponseEntity<List<TiposConsultaDto>> listarTiposConsultaParaRegistroDeConsulta() {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.listarTiposConsultaParaRegistro());
+    }
+
+    @GetMapping("/registro/veterinarios-tipo-consulta/{idTipoConsulta}")
+    public ResponseEntity<List<VeterinariosTipoConsultaDto>> listarVeterinariosTipoConsultaParaRegistroDeConsulta(@PathVariable Long idTipoConsulta) {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.listarVeterinariosTipoConsulta(idTipoConsulta));
+    }
+
+    @GetMapping("/registro/horarios/{idVeterinario}")
+    public ResponseEntity<List<DiaConsultasVeterinarioDto>> buscarHorariosVeterinarioParaRegistroDeConsulta(@PathVariable Long idVeterinario) {
+        return ResponseEntity.ok().body(this.consultasAtendenteService.buscarHorariosVeterinario(idVeterinario));
+    }
+
+    @PostMapping("/registrar")
+    public ResponseEntity<Void> registrarConsulta(HttpServletRequest request, @RequestBody @Valid RegistroConsultaAtendenteForm form) {
         TokenModel token = new TokenModel(request.getHeader("Authorization"));
-        this.consultasAtendenteService.avaliarPagamento(idConsulta, form, token.getIdUsuario());
+        this.consultasAtendenteService.registrarConsulta(form, token.getIdUsuario());
         return ResponseEntity.ok().build();
     }
 

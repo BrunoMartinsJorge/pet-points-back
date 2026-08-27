@@ -6,6 +6,8 @@ import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class ConsultasAtendenteDto {
@@ -14,6 +16,7 @@ public class ConsultasAtendenteDto {
     private String iniciadoEm;
     private String finalizadoEm;
     private StatusConsultaEnum status;
+    private Long idSolicitante;
     private String solicitante;
     private String atendente;
     private String veterinario;
@@ -27,12 +30,17 @@ public class ConsultasAtendenteDto {
     private String canceladoEm;
     private String motivoCancelamento;
     private String observacoes;
+    private UUID imagemSolicitante;
+    private UUID imagemPet;
+    private UUID imagemVeterinario;
+    private UUID imagemAtendente;
 
     public ConsultasAtendenteDto(ConsultaModel consulta) {
         this.id = consulta.getId();
         this.iniciadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getIniciadoEm());
         this.finalizadoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getFinalizadoEm());
         this.status = consulta.getStatus();
+        this.idSolicitante = consulta.getSolicitante().getId();
         this.solicitante = consulta.getSolicitante().getNome();
         this.atendente = consulta.getAtendente() != null ? consulta.getAtendente().getNome() : "Consulta Não Deferida!";
         this.veterinario = consulta.getVeterinario().getNome();
@@ -46,5 +54,9 @@ public class ConsultasAtendenteDto {
         this.canceladoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getCanceladoEm());
         this.motivoCancelamento = consulta.getMotivoCancelamento();
         this.observacoes = consulta.getObservacoes();
+        this.imagemSolicitante = consulta.getSolicitante().getImagem();
+        this.imagemPet = consulta.getPet() != null ? consulta.getPet().getImagem() : null;
+        this.imagemVeterinario = consulta.getVeterinario() != null ? consulta.getVeterinario().getImagem() : null;
+        this.imagemAtendente = consulta.getAtendente() != null ? consulta.getAtendente().getImagem() : null;
     }
 }

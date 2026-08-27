@@ -96,6 +96,10 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     @Override
     @Transactional
     public void iniciarConsulta(Long idUsuario, Long idConsulta) {
+        List<ConsultaModel> consultasDoDia = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
+                .filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.INICIADO)).toList();
+        if (!consultasDoDia.isEmpty())
+            throw new RuntimeException("Duas consultas não podem estar iniciadas ao mesmo tempo!");
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.APROVADA)
             throw new RuntimeException("A consulta não pode ser iniciada com o estado: " + consulta.getStatus().getDescricao() + "!");

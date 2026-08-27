@@ -3,21 +3,32 @@ package br.com.api.petpoints.domain.users.atendente.features.consultas.service;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.AvaliacaoConsultaDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.ConsultasAtendenteDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.InformacoesPagamentoDto;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.OpcaoClienteConsultaDto;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.PendenciaPagamentoClienteDto;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.dto.PendenciasFinanceirasClienteDto;
 import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.IndeferirConsultaForm;
-import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.IndeferirPagamentoForm;
+import br.com.api.petpoints.domain.users.atendente.features.consultas.forms.RegistroConsultaAtendenteForm;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.DiaConsultasVeterinarioDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.OpcoesPetConsultasDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.TiposConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.dto.VeterinariosTipoConsultaDto;
+import br.com.api.petpoints.domain.users.cliente.features.minhasconsultas.service.MinhasConsultasClienteServiceImpl;
+import br.com.api.petpoints.core.token.TipoUsuario;
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
-import br.com.api.petpoints.shared.enums.StatusPagamentoEnum;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.enums.TipoLogEnum;
-import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
 import br.com.api.petpoints.shared.features.logs.LogsServiceImpl;
 import br.com.api.petpoints.shared.features.notificacoes.controller.NotificacoesController;
 import br.com.api.petpoints.shared.features.notificacoes.form.NovaNotificacaoForm;
 import br.com.api.petpoints.shared.models.ConsultaModel;
-import br.com.api.petpoints.shared.models.PagamentoModel;
+import br.com.api.petpoints.shared.models.PetModel;
+import br.com.api.petpoints.shared.models.TipoConsultaModel;
 import br.com.api.petpoints.shared.models.UsuarioModel;
 import br.com.api.petpoints.shared.repository.ConsultaRepository;
+import br.com.api.petpoints.shared.repository.PetRepository;
+import br.com.api.petpoints.shared.repository.TipoConsultaRepository;
 import br.com.api.petpoints.shared.repository.UsuarioRepository;
 import br.com.api.petpoints.shared.utils.LocalDateTimeUtils;
 import jakarta.transaction.Transactional;
@@ -25,10 +36,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,8 +54,11 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
 
     private final UsuarioRepository usuarioRepository;
     private final ConsultaRepository consultaRepository;
+    private final PetRepository petRepository;
+    private final TipoConsultaRepository tipoConsultaRepository;
     private final LogsServiceImpl logsService;
     private final NotificacoesController notificacoesController;
+    private final MinhasConsultasClienteServiceImpl minhasConsultasClienteService;
 
     private static final List<LocalTime> HORARIOS_FUNCIONAMENTO = List.of(
             LocalTime.of(8, 0), LocalTime.of(9, 0), LocalTime.of(10, 0), LocalTime.of(11, 0),
@@ -243,6 +259,47 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
         return this.consultaRepository.findAllBySolicitante_IdAndPagamentoIsNull(idCliente).stream().filter(consulta -> consulta.getStatus() == StatusConsultaEnum.FINALIZADO).map(ConsultasAtendenteDto::new).toList();
     }
 
+    /**
+     * Levanta as cobranças em aberto do cliente para que o atendente veja, antes
+     * de aprovar uma nova solicitação, se existe alguma pendência (ou atraso) na
+     * clínica. É apenas informativo — a avaliação da cobrança em si acontece na
+     * tela de Pagamentos da Clínica.
+     */
+    @Override
+    public PendenciasFinanceirasClienteDto buscarPendenciasFinanceirasDoCliente(Long idCliente) {
+        UsuarioModel cliente = this.getUsuarioPorId(idCliente);
+        LocalDateTime agora = LocalDateTime.now();
+
+        List<PendenciaPagamentoClienteDto> pendencias = this.consultaRepository
+                .buscarConsultasComPagamentoPendenteDoCliente(idCliente)
+                .stream()
+                .map(consulta -> new PendenciaPagamentoClienteDto(consulta, agora))
+                .sorted(Comparator.comparingLong(PendenciaPagamentoClienteDto::getDiasEmAtraso).reversed())
+                .toList();
+
+        List<PendenciaPagamentoClienteDto> atrasadas = pendencias.stream()
+                .filter(PendenciaPagamentoClienteDto::isAtrasado)
+                .toList();
+
+        return new PendenciasFinanceirasClienteDto(
+                cliente.getId(),
+                cliente.getNome(),
+                cliente.getEmail(),
+                pendencias.size(),
+                atrasadas.size(),
+                this.somarValores(pendencias),
+                this.somarValores(atrasadas),
+                pendencias
+        );
+    }
+
+    private BigDecimal somarValores(List<PendenciaPagamentoClienteDto> pendencias) {
+        return pendencias.stream()
+                .map(PendenciaPagamentoClienteDto::getValor)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     @Override
     public InformacoesPagamentoDto buscarInformacoesPagamento(Long idConsulta) {
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
@@ -255,51 +312,6 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getAvaliacao() == null) return new AvaliacaoConsultaDto();
         return new AvaliacaoConsultaDto(consulta.getAvaliacao());
-    }
-
-    @Override
-    @Transactional
-    public void avaliarPagamento(Long idConsulta, IndeferirPagamentoForm form, Long idAtendente) {
-        ConsultaModel consulta = this.getConsultaPorId(idConsulta);
-        PagamentoModel pagamento = getPagamento(consulta);
-        if (!form.isAprovar() && (form.getMotivoIndeferimento() == null || form.getMotivoIndeferimento().isBlank()))
-            throw new RuntimeException("Informe o motivo da reprovação do pagamento!");
-
-        UsuarioModel atendente = this.getUsuarioPorId(idAtendente);
-
-        pagamento.setStatusPagamento(form.isAprovar() ? StatusPagamentoEnum.APROVADO : StatusPagamentoEnum.REPROVADO);
-        pagamento.setMotivoIndeferimento(!form.isAprovar() ? form.getMotivoIndeferimento() : null);
-        if (form.isAprovar()) {
-            pagamento.setAprovadoPor(atendente);
-            pagamento.setDataPagamento(LocalDateTime.now());
-        }
-        this.consultaRepository.save(consulta);
-
-        NovaNotificacaoForm notificacao = new NovaNotificacaoForm(
-                consulta.getSolicitante().getId(),
-                "Pagamento de Consulta",
-                form.isAprovar() ? "Pagamento APROVADO por atendente!" : "Pagamento REPROVADO por atendente!",
-                TiposNotificacoesEnum.CONSULTA
-        );
-        try {
-            this.notificacoesController.enviarNotificacao(notificacao);
-            log.info("Notificação de avaliação de pagamento enviada ao cliente!");
-        } catch (Exception e) {
-            log.error("Problema ao enviar notificação de avaliação de pagamento ao cliente!");
-            throw new RuntimeException("Ocorreu um erro ao gerar notificação de cliente da consulta!");
-        }
-    }
-
-    private static PagamentoModel getPagamento(ConsultaModel consulta) {
-        PagamentoModel pagamento = consulta.getPagamento();
-
-        if (pagamento == null)
-            throw new RuntimeException("Esta consulta ainda não possui uma cobrança gerada!");
-        if (pagamento.getTipoPagamento() == TipoPagamentoEnum.PIX)
-            throw new RuntimeException("Pagamentos via PIX são confirmados automaticamente pelo Mercado Pago e não podem ser avaliados manualmente!");
-        if (pagamento.getStatusPagamento() == StatusPagamentoEnum.APROVADO)
-            throw new RuntimeException("Este pagamento já foi aprovado!");
-        return pagamento;
     }
 
     @Transactional
@@ -354,5 +366,151 @@ public class ConsultasAtendenteServiceImpl implements ConsultasAtendenteService 
         if (!consulta.getAtendente().equals(atendente))
             throw new RuntimeException("A consulta não esta ligada ao atendente!");
         return new ConsultasAtendenteDto(consulta);
+    }
+
+    // ------------------------------------------------------------------
+    // Registro direto de consulta pelo atendente
+    // ------------------------------------------------------------------
+
+    @Override
+    public List<OpcaoClienteConsultaDto> listarClientesParaRegistro() {
+        List<UsuarioModel> clientes = this.usuarioRepository.findAllByPermissao(TipoUsuario.C)
+                .stream()
+                .filter(cliente -> cliente.getStatusPerfilEnum() == StatusPerfilEnum.A)
+                .toList();
+        return OpcaoClienteConsultaDto.convert(clientes);
+    }
+
+    @Override
+    public List<OpcoesPetConsultasDto> listarPetsDoCliente(Long idCliente) {
+        UsuarioModel cliente = this.getUsuarioPorId(idCliente);
+        if (cliente.getPermissao() != TipoUsuario.C)
+            throw new RuntimeException("O usuário informado não é um cliente!");
+        return this.minhasConsultasClienteService.buscarPetsConsulta(idCliente);
+    }
+
+    @Override
+    public List<TiposConsultaDto> listarTiposConsultaParaRegistro() {
+        return this.minhasConsultasClienteService.listarTiposConsulta();
+    }
+
+    @Override
+    public List<VeterinariosTipoConsultaDto> listarVeterinariosTipoConsulta(Long idTipoConsulta) {
+        return this.minhasConsultasClienteService.listarVeterinariosTipoConsulta(idTipoConsulta);
+    }
+
+    @Override
+    public List<DiaConsultasVeterinarioDto> buscarHorariosVeterinario(Long idVeterinario) {
+        return this.minhasConsultasClienteService.buscarDiasHorariosDisponiveisVeterinario(idVeterinario);
+    }
+
+    /**
+     * Registra uma consulta diretamente pelo atendente. Diferente do fluxo do cliente,
+     * não existe etapa de solicitação/deferimento: a consulta já é criada APROVADA,
+     * com o atendente responsável e a data de deferimento preenchidos.
+     */
+    @Override
+    @Transactional
+    public void registrarConsulta(RegistroConsultaAtendenteForm form, Long idAtendente) {
+        UsuarioModel atendente = this.getUsuarioPorId(idAtendente);
+        UsuarioModel cliente = this.getUsuarioPorId(form.getIdCliente());
+        UsuarioModel veterinario = this.getUsuarioPorId(form.getIdVeterinario());
+
+        if (cliente.getPermissao() != TipoUsuario.C)
+            throw new RuntimeException("O usuário informado como cliente não é um cliente!");
+        if (cliente.getStatusPerfilEnum() == StatusPerfilEnum.D)
+            throw new RuntimeException("O perfil do cliente informado está desativado!");
+        if (veterinario.getPermissao() != TipoUsuario.V)
+            throw new RuntimeException("O usuário informado como veterinário não é um veterinário!");
+
+        PetModel pet = this.petRepository.findById(form.getIdPet())
+                .orElseThrow(() -> new ObjectNotFoundException("Pet com ID: " + form.getIdPet() + " não encontrado!"));
+        if (!pet.getTutor().getId().equals(cliente.getId()))
+            throw new RuntimeException("O pet informado não pertence ao cliente selecionado!");
+
+        TipoConsultaModel tipoConsulta = this.tipoConsultaRepository.findById(form.getIdTipoConsulta())
+                .orElseThrow(() -> new ObjectNotFoundException("Tipo de consulta com ID: " + form.getIdTipoConsulta() + " não encontrado!"));
+        boolean veterinarioAtendeTipo = tipoConsulta.getVeterinarios() != null
+                && tipoConsulta.getVeterinarios().stream()
+                .anyMatch(vet -> vet.getId().equals(veterinario.getId()));
+        if (!veterinarioAtendeTipo)
+            throw new RuntimeException("O veterinário selecionado não atende esse tipo de consulta!");
+
+        this.validarDataConsultaRegistro(form.getDataConsulta(), veterinario.getId());
+
+        log.info("Registrando consulta diretamente pelo atendente {}...", atendente.getId());
+
+        ConsultaModel consulta = new ConsultaModel();
+        consulta.setSolicitante(cliente);
+        consulta.setPet(pet);
+        consulta.setVeterinario(veterinario);
+        consulta.setTipoConsulta(tipoConsulta);
+        consulta.setDataConsulta(form.getDataConsulta());
+        consulta.setObservacoes(form.getObservacoes());
+        consulta.setFormaPagamento(form.getFormaPagamento());
+        consulta.setStatus(StatusConsultaEnum.APROVADA);
+        consulta.setAtendente(atendente);
+        consulta.setDeferidoEm(LocalDateTime.now());
+
+        consulta = this.consultaRepository.save(consulta);
+        this.logsService.registrarLog(atendente, TipoLogEnum.DEFERIU_CONSULTA);
+        this.notificarRegistroConsulta(consulta);
+        log.debug("Registro de consulta pelo atendente concluído!");
+    }
+
+    /**
+     * Valida o horário escolhido: precisa estar na tabela de funcionamento, não pode
+     * estar no passado e o veterinário não pode ter outra consulta viva no período.
+     */
+    private void validarDataConsultaRegistro(LocalDateTime dataConsulta, Long idVeterinario) {
+        if (!HORARIOS_FUNCIONAMENTO.contains(dataConsulta.toLocalTime()))
+            throw new RuntimeException("O horário informado não consta na tabela de horários de funcionamento!");
+
+        if (dataConsulta.isBefore(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS)))
+            throw new RuntimeException("Não é possível registrar uma consulta em um horário que já passou!");
+
+        boolean horarioOcupado = this.consultaRepository.findAllByVeterinario_Id(idVeterinario)
+                .stream()
+                .filter(this::consultaOcupaHorario)
+                .anyMatch(consulta -> consulta.getDataConsulta()
+                        .truncatedTo(ChronoUnit.HOURS)
+                        .isEqual(dataConsulta.truncatedTo(ChronoUnit.HOURS)));
+
+        if (horarioOcupado)
+            throw new RuntimeException("O veterinário já possui uma consulta nesse horário!");
+    }
+
+    /** Avisa cliente e veterinário que a consulta foi registrada pela clínica. */
+    @Transactional
+    protected void notificarRegistroConsulta(ConsultaModel consulta) {
+        String dataFormatada = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getDataConsulta());
+
+        NovaNotificacaoForm notificacao = new NovaNotificacaoForm(
+                consulta.getSolicitante().getId(),
+                "Consulta Registrada",
+                "A clínica registrou uma consulta para você com o Dr(a) " + consulta.getVeterinario().getNome()
+                        + " em " + dataFormatada + ".",
+                TiposNotificacoesEnum.CONSULTA
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de registro de consulta enviada ao cliente!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de registro de consulta ao cliente!");
+        }
+
+        notificacao = new NovaNotificacaoForm(
+                consulta.getVeterinario().getId(),
+                "Consulta Agendada",
+                "Uma nova consulta com " + consulta.getSolicitante().getNome() + " foi registrada para "
+                        + dataFormatada + "!",
+                TiposNotificacoesEnum.CONSULTA
+        );
+        try {
+            this.notificacoesController.enviarNotificacao(notificacao);
+            log.info("Notificação de registro de consulta enviada ao veterinário!");
+        } catch (Exception e) {
+            log.error("Problema ao enviar notificação de registro de consulta ao veterinário!");
+        }
     }
 }

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -23,6 +25,8 @@ public class DetalhesConsultaSelecionadaDto {
     private String observacoes;
     private String iniciadoEm;
     private String finalizadoEm;
+    private UUID imagemPet;
+    private UUID imagemAtendente;
 
     public DetalhesConsultaSelecionadaDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -35,5 +39,7 @@ public class DetalhesConsultaSelecionadaDto {
         this.observacoes = consulta.getObservacoes();
         this.iniciadoEm = consulta.getIniciadoEm() == null ? "Não Iniciado" : LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getIniciadoEm());
         this.finalizadoEm = consulta.getFinalizadoEm() == null ? "Não Finalizado" : LocalDateTimeUtils.converterLocalDateTimeParaPtBr(consulta.getFinalizadoEm());
+        this.imagemPet = consulta.getPet() != null ? consulta.getPet().getImagem() : null;
+        this.imagemAtendente = consulta.getAtendente() != null ? consulta.getAtendente().getImagem() : null;
     }
 }

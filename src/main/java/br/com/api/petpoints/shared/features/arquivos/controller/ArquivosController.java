@@ -27,9 +27,14 @@ public class ArquivosController {
                 .body(arquivo.getConteudo());
     }
 
+    /**
+     * Usuário sem foto devolve 404 (e nao 500), para que o front apenas exiba o
+     * placeholder do componente de imagem.
+     */
     @GetMapping("/usuario/{idUsuario}")
     public ResponseEntity<byte[]> buscarArquivoPorUsuario(@PathVariable Long idUsuario) {
         ArquivosModel arquivo = this.arquivosService.buscarArquivoPorIdUsuario(idUsuario);
+        if (arquivo == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf(arquivo.getTipo()))
                 .body(arquivo.getConteudo());

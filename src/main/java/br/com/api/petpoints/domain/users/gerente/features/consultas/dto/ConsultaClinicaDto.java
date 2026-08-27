@@ -1,6 +1,7 @@
 package br.com.api.petpoints.domain.users.gerente.features.consultas.dto;
 
 import br.com.api.petpoints.shared.enums.StatusConsultaEnum;
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.models.ConsultaModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,6 +24,10 @@ public class ConsultaClinicaDto {
     private String observacoes;
     private ParticipantesConsultaDto cliente;
     private ParticipantesConsultaDto veterinario;
+    private String pet;
+    private LocalDateTime dataConsulta;
+    private double valor;
+    private TipoPagamentoEnum formaPagamento;
 
     public ConsultaClinicaDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -32,6 +37,10 @@ public class ConsultaClinicaDto {
         this.observacoes = consulta.getObservacoes();
         this.cliente = new ParticipantesConsultaDto(consulta.getSolicitante());
         this.veterinario = new ParticipantesConsultaDto(consulta.getVeterinario());
+        this.pet = consulta.getPet() != null ? consulta.getPet().getNome() : null;
+        this.dataConsulta = consulta.getDataConsulta();
+        this.valor = consulta.getTipoConsulta() != null ? consulta.getTipoConsulta().getValor() : 0.0;
+        this.formaPagamento = consulta.getFormaPagamento();
     }
 
     public static List<ConsultaClinicaDto> convert(List<ConsultaModel> consultas) {
