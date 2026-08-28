@@ -29,15 +29,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import org.thymeleaf.exceptions.TemplateInputException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -319,10 +319,16 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
 
     private byte[] gerarPdfPrescricao(PrescricaoModel prescricao, PrescricaoForm form, UsuarioModel veterinario, ConsultaModel consulta) {
         PrescrisaoDto dadosPrescricao = new PrescrisaoDto(prescricao, veterinario, consulta.getSolicitante(), consulta.getPet(), form.getDiagnostico(), this.local,
-                LocalDateTimeUtils.converterLocalDateTimeParaPtBr(form.getRetorno()));
+                LocalDateTimeUtils.converterLocalDateTimeParaPtBr(form.getRetorno()), "+55 (018) 99631-3182");
         Context context = new Context();
         context.setVariable("prescricao", dadosPrescricao);
-        String html = this.templateEngine.process("prescricao-consulta", context);
+        context.setVariable("logoBase64", carregarLogoBase64());
+        String html = "";
+        try {
+            html = this.templateEngine.process("prescricao-consulta", context);
+        } catch (TemplateInputException e) {
+            throw new RuntimeException(e);
+        }
         return RelatoriosUtils.getBytes(html);
     }
 
@@ -330,5 +336,23 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
         List<Long> idsProdutos = consulta.getItensCobranca().stream().map(ItemConsultaModel::getId).toList();
         if (idsProdutos.isEmpty()) return new ArrayList<>();
         return this.produtoRepository.findAllByIdIn(idsProdutos);
+    }
+
+    private String carregarLogoBase64() {
+        try (InputStream inputStream =
+                     getClass().getResourceAsStream("/templates/images/img.png")) {
+
+            if (inputStream == null) {
+                throw new IllegalStateException("Logo não encontrada");
+            }
+
+            byte[] bytes = inputStream.readAllBytes();
+
+            return "data:image/png;base64," +
+                    Base64.getEncoder().encodeToString(bytes);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao carregar logo", e);
+        }
     }
 }

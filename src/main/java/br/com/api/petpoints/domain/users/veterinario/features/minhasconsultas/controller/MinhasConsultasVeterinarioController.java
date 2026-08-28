@@ -6,9 +6,13 @@ import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dt
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.PrescricaoForm;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service.MinhasConsultaVeterinarioServiceImpl;
+import br.com.api.petpoints.shared.utils.TokenUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,4 +65,14 @@ public class MinhasConsultasVeterinarioController {
         this.minhasConsultaVeterinarioService.finalizarConsulta(this.getIdUsuario(request), id, form);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/prescricao")
+    public ResponseEntity<byte[]> gerarPrescricaoConsulta(@RequestBody PrescricaoForm payload, HttpServletRequest request) {
+        byte[] pdf = this.minhasConsultaVeterinarioService.gerarPrescricao(TokenUtils.getIdUsuario(request), payload);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=prescricao-consulta.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
 }
+

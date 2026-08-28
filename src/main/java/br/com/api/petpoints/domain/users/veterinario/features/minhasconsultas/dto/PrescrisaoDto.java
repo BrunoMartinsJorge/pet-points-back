@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,6 +27,8 @@ public class PrescrisaoDto {
     private String dataReavaliacao;
     private String local;
     private String data;
+    private ClinicaPrescricaoDto clinica;
+    private List<ProdutoPrescricaoDto> itens;
 
     public PrescrisaoDto(
             PrescricaoModel prescricao,
@@ -33,7 +37,8 @@ public class PrescrisaoDto {
             PetModel pet,
             String diagnostico,
             String localClinica,
-            String dataRetorno
+            String dataRetorno,
+            String telefone
     ) {
         this.numero = prescricao.getId();
         this.veterinario = new VeterinarioPrescrisaoDto(veterinario);
@@ -44,5 +49,7 @@ public class PrescrisaoDto {
         this.dataReavaliacao = dataRetorno;
         this.local = localClinica;
         this.data = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(LocalDateTime.now());
+        this.clinica = new ClinicaPrescricaoDto(localClinica, telefone);
+        this.itens = new ArrayList<>();
     }
 }
