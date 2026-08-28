@@ -95,9 +95,9 @@ public class UsuariosPadroes implements CommandLineRunner {
         consulta.setPet(pet);
         consulta.setStatus(StatusConsultaEnum.PENDENTE);
         consulta.setSolicitante(cliente);
-        // consulta.setAtendente(atendente);
+        consulta.setAtendente(atendente);
         consulta.setSolicitadoEm(LocalDateTime.now().minusDays(2));
-        consulta.setFormaPagamento(TipoPagamentoEnum.CARTAO);
+        consulta.setFormaPagamento(TipoPagamentoEnum.DINHEIRO);
         this.consultaRepository.save(consulta);
     }
 
@@ -174,7 +174,7 @@ public class UsuariosPadroes implements CommandLineRunner {
 
         this.tipoConsultaRepository.saveAll(List.of(emergencia, vacinacao));
         rotina = this.tipoConsultaRepository.save(rotina);
-        // mockarConsulta(usuarios.get("cliente"), usuarios.get("atendente"), usuarios.get("veterinario"), rotina);
+        mockarConsulta(usuarios.get("cliente"), usuarios.get("atendente"), usuarios.get("veterinario"), rotina);
     }
 
     private void pet(UsuarioModel cliente) {

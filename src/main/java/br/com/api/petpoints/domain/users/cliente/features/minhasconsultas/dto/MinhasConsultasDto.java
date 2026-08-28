@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,6 +24,8 @@ public class MinhasConsultasDto {
     private StatusConsultaEnum statusConsulta;
     private String tipoConsulta;
     private Long idVeterinario;
+    private UUID imagemPet;
+    private UUID imagemVeterinario;
 
     public MinhasConsultasDto(ConsultaModel consulta) {
         this.id = consulta.getId();
@@ -32,6 +35,8 @@ public class MinhasConsultasDto {
         this.statusConsulta = consulta.getStatus();
         this.tipoConsulta = consulta.getTipoConsulta().getNome();
         this.idVeterinario = consulta.getVeterinario().getId();
+        this.imagemPet = consulta.getPet() != null ? consulta.getPet().getImagem() : null;
+        this.imagemVeterinario = consulta.getVeterinario() != null ? consulta.getVeterinario().getImagem() : null;
     }
 
     public static List<MinhasConsultasDto> convert(List<ConsultaModel> consultas) {

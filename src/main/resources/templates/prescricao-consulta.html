@@ -1,78 +1,52 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8"/>
     <title>Prescrição Veterinária</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet"/>
-
     <style>
-        :root {
-            --ink: #2d2a25;
-            --teal: #40807d;
-            --olive: #7c6f4d;
-            --label: #8b867d;
-            --line: #35322c;
-            --border: #b9b4aa;
-            --dash: #c7c2b8;
-        }
-
         * {
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             background: #f2f0ec;
-            color: var(--ink);
-            font-family: "Helvetica Neue", Arial, sans-serif;
+            color: #2d2a25;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
         }
 
         .folha {
             width: 210mm;
             min-height: 297mm;
-            margin: 24px auto;
+            margin: 0;
             padding: 22mm 20mm;
             background: #ffffff;
         }
 
         .serif {
-            font-family: "EB Garamond", Georgia, "Times New Roman", serif;
-        }
-
-        .cabecalho {
-            display: flex;
-            align-items: flex-start;
-            gap: 18px;
-        }
-
-        .logotipo {
-            width: 78px;
-            height: 78px;
-            flex: 0 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--label);
-            font-size: 8px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-
-            img {
-                width: 100%;
-                object-fit: cover;
-            }
+            font-family: Georgia, "Times New Roman", serif;
         }
 
         .clinica-nome {
             margin: 0 0 6px 0;
             font-size: 26px;
-            font-weight: 600;
-            letter-spacing: .3px;
+            font-weight: bold;
+            letter-spacing: 0.3px;
         }
 
         .clinica-linha {
@@ -81,54 +55,80 @@
         }
 
         .clinica-linha.olive {
-            color: var(--olive);
+            color: #7c6f4d;
         }
 
         .clinica-linha.teal {
-            color: var(--teal);
+            color: #40807d;
+        }
+
+        .cabecalho {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cabecalho-logo {
+            width: 96px;
+            vertical-align: top;
+        }
+
+        .cabecalho-logo img {
+            width: 78px;
+            height: 78px;
+        }
+
+        .cabecalho-info {
+            vertical-align: top;
+            padding-left: 18px;
         }
 
         .regua {
-            border: none;
-            border-top: 1.4px solid var(--ink);
+            border: 0;
+            border-top: 1px solid #2d2a25;
             margin: 14px 0 0 0;
+            height: 1px;
         }
 
         .regua-fina {
-            border: none;
-            border-top: 1px solid var(--ink);
+            border: 0;
+            border-top: 1px solid #2d2a25;
             margin: 8px 0 0 0;
+            height: 1px;
         }
 
         .titulo-linha {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
+            width: 100%;
             margin-top: 16px;
+        }
+
+        .titulo-linha table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
         .titulo {
             font-size: 18px;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             text-transform: uppercase;
-            font-weight: 500;
+            font-weight: normal;
         }
 
         .receita-num {
-            display: flex;
-            align-items: baseline;
-            gap: 10px;
+            text-align: right;
             font-size: 10px;
             letter-spacing: 1.5px;
-            color: var(--label);
+            color: #8b867d;
             text-transform: uppercase;
+            white-space: nowrap;
         }
 
         .receita-num .valor {
+            display: inline-block;
             min-width: 120px;
-            border-bottom: 1px solid var(--line);
+            margin-left: 10px;
+            border-bottom: 1px solid #35322c;
             text-align: center;
-            color: var(--ink);
+            color: #2d2a25;
             letter-spacing: normal;
         }
 
@@ -137,30 +137,52 @@
             font-size: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--teal);
-            font-weight: 600;
+            color: #40807d;
+            font-weight: bold;
         }
 
         .linha-campos {
-            display: flex;
-            gap: 34px;
+            width: 100%;
             margin-top: 14px;
+            border-collapse: separate;
+            border-spacing: 0 0;
+        }
+
+        .linha-campos td {
+            vertical-align: top;
+            padding-right: 34px;
+        }
+
+        .linha-campos td:last-child {
+            padding-right: 0;
+        }
+
+        .campo-nome {
+            width: 40%;
+        }
+
+        .campo-especie {
+            width: 60%;
         }
 
         .campo {
-            flex: 1;
+            width: 33.33%;
+        }
+
+        .campo-2 {
+            width: 66.66%;
         }
 
         .campo .rotulo {
             font-size: 11px;
-            color: var(--label);
-            margin-bottom: 20px;
+            color: #8b867d;
+            margin-bottom: 8px;
         }
 
         .campo .valor {
             display: block;
             min-height: 16px;
-            border-bottom: 1px solid var(--line);
+            border-bottom: 1px solid #35322c;
             padding-bottom: 3px;
             font-size: 12px;
         }
@@ -170,17 +192,20 @@
         }
 
         .linhas-livres .linha-texto {
-            border-bottom: 1px solid var(--line);
+            border-bottom: 1px solid #35322c;
             min-height: 18px;
             padding-bottom: 3px;
             margin-bottom: 12px;
         }
 
         .prescricao-cab {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
+            width: 100%;
             margin-top: 26px;
+        }
+
+        .prescricao-cab table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
         .prescricao-cab .titulo {
@@ -188,19 +213,20 @@
         }
 
         .prescricao-cab .dica {
+            text-align: right;
             font-size: 10px;
-            color: var(--teal);
+            color: #40807d;
         }
 
         .tabela-prescricao {
             width: 100%;
             border-collapse: collapse;
             margin-top: 12px;
-            border: 1px solid var(--border);
+            border: 1px solid #b9b4aa;
         }
 
         .tabela-prescricao td {
-            border-top: 1px solid var(--border);
+            border-top: 1px solid #b9b4aa;
             height: 34px;
             padding: 6px 10px;
             vertical-align: middle;
@@ -212,22 +238,30 @@
         }
 
         .item-detalhes {
-            color: var(--label);
+            color: #8b867d;
             font-size: 11px;
         }
 
         .duas-colunas {
-            display: flex;
-            gap: 44px;
+            width: 100%;
             margin-top: 24px;
+            border-collapse: collapse;
         }
 
-        .duas-colunas > div {
-            flex: 1;
+        .duas-colunas > tbody > tr > td:first-child {
+            width: 50%;
+            padding-right: 22px;
+            vertical-align: top;
+        }
+
+        .duas-colunas > tbody > tr > td:last-child {
+            width: 50%;
+            padding-left: 22px;
+            vertical-align: top;
         }
 
         .bloco .linha-texto {
-            border-bottom: 1px solid var(--line);
+            border-bottom: 1px solid #35322c;
             min-height: 18px;
             padding-bottom: 3px;
             margin-bottom: 12px;
@@ -239,7 +273,7 @@
 
         .dica-inline {
             font-size: 10px;
-            color: var(--teal);
+            color: #40807d;
             margin-top: 2px;
         }
 
@@ -249,32 +283,39 @@
 
         .local-data .rotulo {
             font-size: 11px;
-            color: var(--label);
-            margin-bottom: 20px;
+            color: #8b867d;
+            margin-bottom: 8px;
         }
 
         .local-data .valor {
             display: block;
-            max-width: 60%;
-            border-bottom: 1px solid var(--line);
+            width: 60%;
+            border-bottom: 1px solid #35322c;
             min-height: 16px;
             padding-bottom: 3px;
         }
 
         .assinatura-area {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 40px;
+            width: 100%;
             margin-top: 42px;
+            border-collapse: collapse;
         }
 
-        .assinatura {
-            flex: 1;
+        .assinatura-area > tbody > tr > td {
+            vertical-align: bottom;
+        }
+
+        .assinatura-area .assinatura-col {
+            width: auto;
+            padding-right: 40px;
+        }
+
+        .assinatura-area .carimbo-col {
+            width: 150px;
         }
 
         .assinatura .linha-assinatura {
-            border-top: 1px solid var(--line);
+            border-top: 1px solid #35322c;
             padding-top: 6px;
         }
 
@@ -283,183 +324,467 @@
         }
 
         .assinatura .nome-vet .cargo {
-            color: var(--label);
+            color: #8b867d;
         }
 
         .carimbo {
             width: 150px;
             height: 92px;
-            border: 1px dashed var(--dash);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--label);
+            border: 1px dashed #c7c2b8;
+            text-align: center;
+            vertical-align: middle;
+            color: #8b867d;
             font-size: 9px;
             letter-spacing: 3px;
             text-transform: uppercase;
         }
-
-        @page {
-            size: A4;
-            margin: 0;
-        }
-
-        @media print {
-            body {
-                background: #fff;
-            }
-
-            .folha {
-                margin: 0;
-                box-shadow: none;
-            }
-        }
     </style>
+
 </head>
+
 <body>
+
 <div class="folha">
 
-    <div class="cabecalho">
-        <div class="logotipo">
-            <img src="./images/img.png" alt="Logo Pet Points">
-        </div>
-        <div>
-            <h1 class="clinica-nome serif">
-                Clínica Veterinária Pet Points</h1>
-            <p class="clinica-linha olive">
-                <span th:text="${prescricao.veterinario.nome}">VETERINÁRIO</span>
-                &nbsp;·&nbsp;
-                <span th:text="${prescricao.veterinario.crmv}">CRMV-SP 00000</span>
-            </p>
-            <p class="clinica-linha olive">Clínica
-                médica de animais</p>
-            <p class="clinica-linha teal">
-                <span th:text="${clinica != null ? clinica.endereco : 'Rua das Acácias, 128 — Pinheiros, São Paulo/SP'}">Rua das Acácias, 128 — Pinheiros, São Paulo/SP</span>
-                &nbsp;·&nbsp;
-                <span th:text="${clinica != null ? clinica.telefone : '(11) 0000-0000'}">(11) 0000-0000</span>
-            </p>
-        </div>
-    </div>
-    <hr class="regua"/>
-
-    <div class="titulo-linha">
-        <div class="titulo serif">Prescrição Veterinária</div>
-        <div class="receita-num">
-            Receita nº
-            <span class="valor" th:text="${prescricao.numero}">0000</span>
-        </div>
-    </div>
-    <hr class="regua-fina"/>
-
-    <div class="secao">Identificação do paciente</div>
-    <div class="linha-campos">
-        <div class="campo" style="flex: 2;">
-            <div class="rotulo">Nome do animal</div>
-            <span class="valor" th:text="${prescricao.animal.nome}">&nbsp;</span>
-        </div>
-        <div class="campo">
-            <div class="rotulo">Espécie</div>
-            <span class="valor" th:text="${prescricao.animal.especie}">&nbsp;</span>
-        </div>
-    </div>
-    <div class="linha-campos">
-        <div class="campo">
-            <div class="rotulo">Raça</div>
-            <span class="valor" th:text="${prescricao.animal.raca}">&nbsp;</span>
-        </div>
-        <div class="campo">
-            <div class="rotulo">Sexo</div>
-            <span class="valor" th:text="${prescricao.animal.sexo}">&nbsp;</span>
-        </div>
-        <div class="campo">
-            <div class="rotulo">Idade</div>
-            <span class="valor" th:text="${prescricao.animal.idade}">&nbsp;</span>
-        </div>
-    </div>
-
-    <div class="secao">Identificação do tutor</div>
-    <div class="linha-campos">
-        <div class="campo" style="flex: 2;">
-            <div class="rotulo">Nome completo</div>
-            <span class="valor" th:text="${prescricao.tutor.nome}">&nbsp;</span>
-        </div>
-        <div class="campo">
-            <div class="rotulo">CPF</div>
-            <span class="valor" th:text="${prescricao.tutor.cpf}">&nbsp;</span>
-        </div>
-        <div class="campo">
-            <div class="rotulo">Telefone</div>
-            <span class="valor" th:text="${prescricao.tutor.telefone}">&nbsp;</span>
-        </div>
-    </div>
-
-    <div class="secao">Diagnóstico / indicação</div>
-    <div class="linhas-livres">
-        <div class="linha-texto" th:text="${prescricao.diagnostico}">&nbsp;</div>
-        <div class="linha-texto">&nbsp;</div>
-    </div>
-
-    <div class="prescricao-cab">
-        <div class="titulo serif">Prescrição</div>
-        <div class="dica">Medicamento · apresentação · dose · via · intervalo · duração</div>
-    </div>
-    <table class="tabela-prescricao">
+    <table class="cabecalho">
         <tbody>
-        <tr th:each="item : ${prescricao.itens}">
-            <td>
-                <strong th:text="${item.medicamento}">Amoxicilina 250 mg</strong>
-                <span class="item-detalhes"
-                      th:text="'· ' + ${item.apresentacao} + ' · ' + ${item.dose}
-                                 + ' · ' + ${item.via} + ' · ' + ${item.intervalo}
-                                 + ' · ' + ${item.duracao}">
-                        · comprimido · 1 cp · VO · 12/12h · 7 dias
-                    </span>
+        <tr>
+
+            <td class="cabecalho-logo">
+                <img th:src="${logoBase64}" alt="Logo Pet Points"/>
             </td>
-        </tr>
-        <tr th:each="i : ${#numbers.sequence(1, 4)}"
-            th:if="${prescricao.itens == null || prescricao.itens.size() &lt; 4}">
-            <td>&nbsp;</td>
+
+            <td class="cabecalho-info">
+
+                <h1 class="clinica-nome serif">
+                    Clínica Veterinária Pet Points
+                </h1>
+
+                <p class="clinica-linha olive">
+                <span th:text="${prescricao.veterinario.nome}">
+                    VETERINÁRIO
+                </span>
+                    &#160;·&#160;
+                    <span th:text="${prescricao.veterinario.crmv}">
+                    CRMV-SP 00000
+                </span>
+                </p>
+
+                <p class="clinica-linha olive">
+                    Clínica médica de animais
+                </p>
+
+                <p class="clinica-linha teal">
+
+                <span th:text="${prescricao.clinica != null
+                    ? prescricao.clinica.endereco
+                    : 'Rua das Acácias, 128 — Pinheiros, São Paulo/SP'}">
+                    Rua das Acácias, 128 — Pinheiros, São Paulo/SP
+                </span>
+
+                    &#160;·&#160;
+
+                    <span th:text="${prescricao.clinica != null
+                    ? prescricao.clinica.telefone
+                    : '(11) 0000-0000'}">
+                    (11) 0000-0000
+                </span>
+
+                </p>
+
+            </td>
+
         </tr>
         </tbody>
     </table>
 
-    <div class="duas-colunas">
-        <div class="bloco">
-            <div class="secao rotulo-topo">Orientações ao tutor</div>
-            <div class="linha-texto" style="margin-top:14px" th:text="${prescricao.orientacoes}">&nbsp;</div>
-            <div class="linha-texto">&nbsp;</div>
-        </div>
-        <div class="bloco">
-            <div class="secao rotulo-topo">Retorno / reavaliação</div>
-            <div class="linha-texto" style="margin-top:14px"
-                 th:text="${prescricao.dataReavaliacao != null} ? ${#temporals.format(prescricao.dataReavaliacao, 'dd/MM/yyyy')} : ''">
-                &nbsp;
-            </div>
-            <div class="dica-inline">Data prevista para reavaliação clínica</div>
-        </div>
+    <hr class="regua"/>
+
+    <div class="titulo-linha">
+
+        <table>
+            <tbody>
+            <tr>
+
+                <td>
+                    <div class="titulo serif">
+                        Prescrição Veterinária
+                    </div>
+                </td>
+
+                <td class="receita-num">
+                    Receita nº
+                    <span
+                            class="valor"
+                            th:text="${prescricao.numero}">
+                    0000
+                </span>
+                </td>
+
+            </tr>
+            </tbody>
+        </table>
+
     </div>
+
+    <hr class="regua-fina"/>
+
+    <div class="secao">
+        Identificação do paciente
+    </div>
+
+    <table class="linha-campos">
+        <tbody>
+        <tr>
+
+            <td class="campo campo-2">
+
+                <div class="rotulo">
+                    Nome do animal
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.animal.nome}">
+                &#160;
+            </span>
+
+            </td>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    Espécie
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.animal.especie}">
+                &#160;
+            </span>
+
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+
+
+    <table class="linha-campos">
+        <tbody>
+        <tr>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    Raça
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.animal.raca}">
+                &#160;
+            </span>
+
+            </td>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    Sexo
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.animal.sexo}">
+                &#160;
+            </span>
+
+            </td>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    Idade
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.animal.idade}">
+                &#160;
+            </span>
+
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="secao">
+        Identificação do tutor
+    </div>
+
+    <table class="linha-campos">
+        <tbody>
+        <tr>
+
+            <td class="campo campo-2">
+
+                <div class="rotulo">
+                    Nome completo
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.tutor.nome}">
+                &#160;
+            </span>
+
+            </td>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    CPF
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.tutor.cpf}">
+                &#160;
+            </span>
+
+            </td>
+
+            <td class="campo">
+
+                <div class="rotulo">
+                    Telefone
+                </div>
+
+                <span
+                        class="valor"
+                        th:text="${prescricao.tutor.telefone}">
+                &#160;
+            </span>
+
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="secao">
+        Diagnóstico / indicação
+    </div>
+
+    <div class="linhas-livres">
+
+        <div
+                class="linha-texto"
+                th:text="${prescricao.diagnostico}">
+            &#160;
+        </div>
+
+        <div class="linha-texto">
+            &#160;
+        </div>
+
+    </div>
+
+    <div class="prescricao-cab">
+
+        <table>
+            <tbody>
+            <tr>
+
+                <td>
+                    <div class="titulo serif">
+                        Prescrição
+                    </div>
+                </td>
+
+                <td class="dica">
+                    Medicamento · apresentação · dose · via · intervalo · duração
+                </td>
+
+            </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+
+    <table class="tabela-prescricao">
+
+        <tbody>
+
+        <tr th:each="item : ${prescricao.itens}">
+
+            <td>
+
+                <strong th:text="${item.medicamento}">
+                    Amoxicilina 250 mg
+                </strong>
+
+                <span
+                        class="item-detalhes"
+                        th:text="${'· ' + item.apresentacao
+                    + ' · ' + item.dose
+                    + ' · ' + item.via
+                    + ' · ' + item.intervalo
+                    + ' · ' + item.duracao}">
+                · comprimido · 1 cp · VO · 12/12h · 7 dias
+            </span>
+
+            </td>
+
+        </tr>
+
+
+        <tr
+                th:each="i : ${#numbers.sequence(1, 4)}"
+                th:if="${prescricao.itens == null || prescricao.itens.size() < 4}">
+
+            <td>
+                &#160;
+            </td>
+
+        </tr>
+
+        </tbody>
+
+    </table>
+
+    <table class="duas-colunas">
+
+        <tbody>
+        <tr>
+
+            <td>
+
+                <div class="bloco">
+
+                    <div class="secao rotulo-topo">
+                        Orientações ao tutor
+                    </div>
+
+                    <div
+                            class="linha-texto"
+                            style="margin-top:14px"
+                            th:text="${prescricao.orientacoes}">
+                        &#160;
+                    </div>
+
+                    <div class="linha-texto">
+                        &#160;
+                    </div>
+
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="bloco">
+
+                    <div class="secao rotulo-topo">
+                        Retorno / reavaliação
+                    </div>
+
+                    <div
+                            class="linha-texto"
+                            style="margin-top:14px"
+                            th:text="${prescricao.dataReavaliacao}">
+                        &#160;
+                    </div>
+
+                    <div class="dica-inline">
+                        Data prevista para reavaliação clínica
+                    </div>
+
+                </div>
+
+            </td>
+
+        </tr>
+        </tbody>
+
+    </table>
 
     <div class="local-data">
-        <div class="rotulo">Local e data</div>
-        <span class="valor"
-              th:text="${prescricao.local} + ', ' + ${#temporals.format(prescricao.data, 'dd '' de '' MMMM '' de '' yyyy')}">
-            São Paulo, 17 de agosto de 2026
-        </span>
-    </div>
 
-    <div class="assinatura-area">
-        <div class="assinatura">
-            <div class="linha-assinatura">
-                <div>Assinatura do médico-veterinário responsável</div>
-                <div class="nome-vet">
-                    <span th:text="${prescricao.veterinario.nome}">Med. Vet. Ana Martins Ribeiro</span>
-                    <span class="cargo"> — <span th:text="${prescricao.veterinario.crmv}">CRMV-SP 00000</span></span>
-                </div>
-            </div>
+        <div class="rotulo">
+            Local e data
         </div>
-        <div class="carimbo">Carimbo</div>
+
+        <span
+                class="valor"
+                th:text="${prescricao.local + ', ' + prescricao.data}">
+        São Paulo, 17 de agosto de 2026
+    </span>
+
     </div>
 
+    <table class="assinatura-area">
+
+        <tbody>
+        <tr>
+
+            <td class="assinatura-col">
+
+                <div class="assinatura">
+
+                    <div class="linha-assinatura">
+
+                        <div>
+                            Assinatura do médico-veterinário responsável
+                        </div>
+
+                        <div class="nome-vet">
+
+                        <span th:text="${prescricao.veterinario.nome}">
+                            Med. Vet. Ana Martins Ribeiro
+                        </span>
+
+                            <span class="cargo">
+                            —&#160;
+
+                            <span th:text="${prescricao.veterinario.crmv}">
+                                CRMV-SP 00000
+                            </span>
+
+                        </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+
+            <td class="carimbo-col">
+
+                <table>
+                    <tbody>
+                    <tr>
+                        <td class="carimbo">
+                            Carimbo
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+            </td>
+
+        </tr>
+        </tbody>
+
+    </table>
 </div>
+
 </body>
 </html>

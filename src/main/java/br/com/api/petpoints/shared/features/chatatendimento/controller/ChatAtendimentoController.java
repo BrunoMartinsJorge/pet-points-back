@@ -39,6 +39,12 @@ public class ChatAtendimentoController {
         return ResponseEntity.ok(this.chatAtendimentoService.listarAtendimentosCliente(idUsuario(request)));
     }
 
+    @GetMapping("/chat-atendimento/cliente/equipe-atendimento")
+    @ResponseBody
+    public ResponseEntity<List<EquipeAtendimentoDto>> buscarEquipeAtendimento() {
+        return ResponseEntity.ok(this.chatAtendimentoService.listarEquipeAtendimento());
+    }
+
     @PostMapping("/chat-atendimento/cliente/solicitar-atendimento")
     @ResponseBody
     public ResponseEntity<Void> solicitarAtendimento(@RequestParam String mensagem,

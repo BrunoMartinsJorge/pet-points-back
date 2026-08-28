@@ -6,6 +6,7 @@ import br.com.api.petpoints.domain.users.cliente.features.meuspagamentos.dto.Pag
 import br.com.api.petpoints.shared.dto.AvaliacoesDto;
 import br.com.api.petpoints.shared.dto.SolicitacaoRemovidaDto;
 import br.com.api.petpoints.shared.enums.StatusAtendimentoEnum;
+import br.com.api.petpoints.shared.enums.StatusPerfilEnum;
 import br.com.api.petpoints.shared.enums.TipoChatEnum;
 import br.com.api.petpoints.shared.enums.TiposNotificacoesEnum;
 import br.com.api.petpoints.shared.exception.custom.ObjectNotFoundException;
@@ -57,6 +58,18 @@ public class ChatAtendimentoService {
         BigDecimal pontuacao = BigDecimal.valueOf(somatoria / atendimentosAvaliados.size())
                 .setScale(2, RoundingMode.HALF_UP).max(BigDecimal.valueOf(5)).min(BigDecimal.valueOf(5));
         return new CardsAtendimentoAtendenteDto(qtdAndamento, qtdFinalizados, pontuacao);
+    }
+
+    /**
+     * Atendentes ativos da clínica, usados apenas para mostrar quem responde na
+     * central de atendimento do cliente.
+     */
+    public List<EquipeAtendimentoDto> listarEquipeAtendimento() {
+        List<UsuarioModel> atendentes = this.usuarioRepository.findAllByPermissao(TipoUsuario.A)
+                .stream()
+                .filter(atendente -> atendente.getStatusPerfilEnum() == StatusPerfilEnum.A)
+                .toList();
+        return EquipeAtendimentoDto.convert(atendentes);
     }
 
     @Transactional

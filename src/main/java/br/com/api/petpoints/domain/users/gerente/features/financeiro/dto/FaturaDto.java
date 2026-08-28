@@ -1,5 +1,6 @@
 package br.com.api.petpoints.domain.users.gerente.features.financeiro.dto;
 
+import br.com.api.petpoints.shared.enums.TipoPagamentoEnum;
 import br.com.api.petpoints.shared.models.PagamentoModel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,7 +24,7 @@ public class FaturaDto {
     private BigDecimal valor;
     private String status;
     private LocalDateTime data;
-    private String tipoPagamento;
+    private TipoPagamentoEnum tipoPagamento;
 
     public FaturaDto(PagamentoModel pagamento) {
         this.id = pagamento.getId();
@@ -33,7 +34,7 @@ public class FaturaDto {
         this.valor = pagamento.getValorPagamento();
         this.status = calcularStatus(pagamento);
         this.data = pagamento.getDataPagamento();
-        this.tipoPagamento = pagamento.getTipoPagamento() != null ? pagamento.getTipoPagamento().getDescricao() : "-";
+        this.tipoPagamento = pagamento.getTipoPagamento();
     }
 
     private static String montarNumero(PagamentoModel pagamento) {

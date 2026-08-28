@@ -1,10 +1,7 @@
 package br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.service;
 
 import br.com.api.petpoints.domain.auth.exception.UsuarioNaoEncontrado;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaAtualDto;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ConsultaVeterinarioDto;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.InformacoesConsultaSelecionadaDto;
-import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.ProdutoCobrancaDto;
+import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.dto.*;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.FinalizarConsultaForm;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.ItemCobrancaForm;
 import br.com.api.petpoints.domain.users.veterinario.features.minhasconsultas.forms.PrescricaoForm;
@@ -28,15 +25,19 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.exceptions.TemplateInputException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -51,7 +52,11 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     private final NotificacoesController notificacoesController;
     private final PagamentoService pagamentoService;
     private final PagamentoRepository pagamentoRepository;
-    private final RelatoriosUtils relatoriosUtils;
+    private final TemplateEngine templateEngine;
+    private final PrescricaoRepository prescricaoRepository;
+
+    @Value("${local-clinica}")
+    private String local;
 
     @Override
     public List<ConsultaVeterinarioDto> listarMinhasConsultas(Long idUsuario) {
@@ -96,6 +101,10 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     @Override
     @Transactional
     public void iniciarConsulta(Long idUsuario, Long idConsulta) {
+        List<ConsultaModel> consultasDoDia = this.consultaRepository.findAllByVeterinario_Id(idUsuario).stream()
+                .filter(consulta -> consulta.getStatus().equals(StatusConsultaEnum.INICIADO)).toList();
+        if (!consultasDoDia.isEmpty())
+            throw new RuntimeException("Duas consultas não podem estar iniciadas ao mesmo tempo!");
         ConsultaModel consulta = this.getConsultaPorId(idConsulta);
         if (consulta.getStatus() != StatusConsultaEnum.APROVADA)
             throw new RuntimeException("A consulta não pode ser iniciada com o estado: " + consulta.getStatus().getDescricao() + "!");
@@ -293,12 +302,57 @@ public class MinhasConsultaVeterinarioServiceImpl implements MinhasConsultaVeter
     }
 
     @Override
-    public Object gerarPrescricao(Long idUsuario, PrescricaoForm form) {
+    public byte[] gerarPrescricao(Long idUsuario, PrescricaoForm form) {
         UsuarioModel veterinario = this.getUsuarioPorId(idUsuario);
         ConsultaModel consulta = this.getConsultaPorId(form.getIdConsulta());
-        if (!veterinario.equals(consulta.getVeterinario())) throw new IllegalAccessException("Você não é o responsável por está consulta!");
+        if (!veterinario.equals(consulta.getVeterinario()))
+            throw new IllegalAccessException("Você não é o responsável por está consulta!");
         PrescricaoModel prescricao = new PrescricaoModel();
         prescricao.setConsulta(consulta);
-        return null;
+        prescricao.setItens(
+                this.produtosUtilizadosConsulta(consulta)
+        );
+        prescricao.setOrientacoesGerais(form.getObservacoes());
+        prescricao = this.prescricaoRepository.save(prescricao);
+        return this.gerarPdfPrescricao(prescricao, form, veterinario, consulta);
+    }
+
+    private byte[] gerarPdfPrescricao(PrescricaoModel prescricao, PrescricaoForm form, UsuarioModel veterinario, ConsultaModel consulta) {
+        PrescrisaoDto dadosPrescricao = new PrescrisaoDto(prescricao, veterinario, consulta.getSolicitante(), consulta.getPet(), form.getDiagnostico(), this.local,
+                LocalDateTimeUtils.converterLocalDateTimeParaPtBr(form.getRetorno()), "+55 (018) 99631-3182");
+        Context context = new Context();
+        context.setVariable("prescricao", dadosPrescricao);
+        context.setVariable("logoBase64", carregarLogoBase64());
+        String html = "";
+        try {
+            html = this.templateEngine.process("prescricao-consulta", context);
+        } catch (TemplateInputException e) {
+            throw new RuntimeException(e);
+        }
+        return RelatoriosUtils.getBytes(html);
+    }
+
+    private List<ProdutoModel> produtosUtilizadosConsulta(ConsultaModel consulta) {
+        List<Long> idsProdutos = consulta.getItensCobranca().stream().map(ItemConsultaModel::getId).toList();
+        if (idsProdutos.isEmpty()) return new ArrayList<>();
+        return this.produtoRepository.findAllByIdIn(idsProdutos);
+    }
+
+    private String carregarLogoBase64() {
+        try (InputStream inputStream =
+                     getClass().getResourceAsStream("/templates/images/img.png")) {
+
+            if (inputStream == null) {
+                throw new IllegalStateException("Logo não encontrada");
+            }
+
+            byte[] bytes = inputStream.readAllBytes();
+
+            return "data:image/png;base64," +
+                    Base64.getEncoder().encodeToString(bytes);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao carregar logo", e);
+        }
     }
 }

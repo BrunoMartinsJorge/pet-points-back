@@ -12,6 +12,6 @@ import lombok.Setter;
 public class CardsPagamentoDto {
 
     private int pagamentosEfetuados;
+    private int pagamentosPendentes;
     private int pagamentosAtrasados;
-    private int pagamentosReprovados;
 }

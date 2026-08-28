@@ -10,8 +10,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
+/**
+ * Resumo somente leitura da cobrança de uma consulta. A avaliação da cobrança
+ * (baixa e indeferimento) é feita na tela de Pagamentos da Clínica, então aqui
+ * apenas informamos a situação atual ao atendente.
+ */
 @Getter
 @Setter
 @AllArgsConstructor
@@ -21,20 +25,22 @@ public class InformacoesPagamentoDto {
     private Long id;
     private BigDecimal valor;
     private String dataLimite;
-    // private String enviadoEm;
-    // private UUID comprovante;
+    private String emitidoEm;
+    private String pagoEm;
     private TipoPagamentoEnum formaPagamento;
     private String motivoIndeferimento;
+    private String avaliadoPor;
     private StatusPagamentoEnum status;
 
     public InformacoesPagamentoDto(PagamentoModel pagamento) {
         this.id = pagamento.getId();
         this.valor = pagamento.getValorPagamento();
         this.dataLimite = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataLimitePagamento());
-        // this.comprovante = pagamento.getComprovante() != null ? pagamento.getComprovante().getArquivo() : null;
+        this.emitidoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataCriacao());
+        this.pagoEm = LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getDataPagamento());
         this.motivoIndeferimento = pagamento.getMotivoIndeferimento();
         this.formaPagamento = pagamento.getTipoPagamento();
+        this.avaliadoPor = pagamento.getAprovadoPor() != null ? pagamento.getAprovadoPor().getNome() : null;
         this.status = pagamento.getStatusPagamento();
-        // this.enviadoEm = pagamento.getComprovante() != null ? LocalDateTimeUtils.converterLocalDateTimeParaPtBr(pagamento.getComprovante().getEnviadoEm()) : null;
     }
 }
