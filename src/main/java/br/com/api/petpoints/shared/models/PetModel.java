@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pet")
+@Table(name = "tb_pet")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

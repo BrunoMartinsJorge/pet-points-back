@@ -211,7 +211,7 @@ public class GerenteConsultasClinicaServiceImpl implements GerenteConsultasClini
 
     @Override
     @Transactional
-    public void adicionarNovoVeteterinarioEspecializacao(Long idEspecializacao, Long idVeterinario) {
+    public void adicionarNovoVeterinarioEspecializacao(Long idEspecializacao, Long idVeterinario) {
         UsuarioModel usuario = this.getUsuarioPorId(idVeterinario);
         EspecializacaoModel especializacao = this.getEspecializacaoPorId(idEspecializacao);
         especializacao.getVeterinarios().add(usuario);
@@ -220,7 +220,7 @@ public class GerenteConsultasClinicaServiceImpl implements GerenteConsultasClini
 
     @Override
     @Transactional
-    public void removerVeteterinarioEspecializacao(Long idEspecializacao, Long idVeterinario) {
+    public void removerVeterinarioEspecializacao(Long idEspecializacao, Long idVeterinario) {
         EspecializacaoModel especializacao = this.getEspecializacaoPorId(idEspecializacao);
         Set<UsuarioModel> veterinarios = especializacao.getVeterinarios();
         veterinarios = veterinarios.stream().filter(veterinario -> !Objects.equals(veterinario.getId(), idVeterinario)).collect(Collectors.toSet());

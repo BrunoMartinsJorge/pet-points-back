@@ -12,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Table(name = "arquivos")
+@Table(name = "tb_arquivos")
 public class ArquivosModel {
 
     @Id

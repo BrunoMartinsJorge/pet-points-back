@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "comprovante")
+@Table(name = "tb_comprovante")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

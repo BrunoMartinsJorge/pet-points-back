@@ -15,7 +15,7 @@ import org.hibernate.validator.constraints.Length;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "avaliacao")
+@Table(name = "tb_avaliacao")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

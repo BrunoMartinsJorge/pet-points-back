@@ -27,7 +27,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "usuario")
+@Table(name = "tb_usuario")
 public class UsuarioModel implements UserDetails {
 
     @Id
@@ -88,7 +88,7 @@ public class UsuarioModel implements UserDetails {
         this.senha = senhaEncoded;
         this.permissao = tipoUsuario;
         this.cpf = registro.getCpf();
-        this.dataNascimento = registro.getDataNascimento();
+        this.setDataNascimento(registro.getDataNascimento());
         this.genero = registro.getGenero();
         this.nome = registro.getNome();
         this.telefone = registro.getTelefone();
@@ -99,7 +99,7 @@ public class UsuarioModel implements UserDetails {
         this.senha = senhaEncoded;
         this.permissao = form.getPermissao();
         this.cpf = form.getCpf();
-        this.dataNascimento = form.getDataNascimento();
+        this.setDataNascimento(form.getDataNascimento());
         this.genero = form.getGenero();
         this.nome = form.getNome();
         this.telefone = form.getTelefone();
@@ -142,5 +142,15 @@ public class UsuarioModel implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public void setDataNascimento(LocalDate dataNascimento) {
+        LocalDate dataMinima = LocalDate.now().minusYears(18);
+        if (dataNascimento.isAfter(dataMinima)) {
+            throw new IllegalArgumentException(
+                    "O usuário deve ter pelo menos 18 anos!"
+            );
+        }
+        this.dataNascimento = dataNascimento;
     }
 }

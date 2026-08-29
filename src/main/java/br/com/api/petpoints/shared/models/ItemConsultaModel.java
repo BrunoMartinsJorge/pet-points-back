@@ -8,16 +8,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
-/**
- * Item de cobrança lançado pelo veterinário ao finalizar uma consulta
- * (uma vacina aplicada, um medicamento utilizado, etc.).
- * <p>
- * O nome e o valor unitário são gravados como "fotografia" do produto no
- * momento da consulta — se o estoquista alterar o preço ou remover o produto
- * depois, a cobrança já emitida continua íntegra.
- */
 @Entity
-@Table(name = "item_consulta")
+@Table(name = "tb_item_consulta")
 @Getter
 @Setter
 @NoArgsConstructor

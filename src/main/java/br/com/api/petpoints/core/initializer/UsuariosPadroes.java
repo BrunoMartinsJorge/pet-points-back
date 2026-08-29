@@ -93,11 +93,23 @@ public class UsuariosPadroes implements CommandLineRunner {
         consulta.setTipoConsulta(tipo);
         PetModel pet = this.petRepository.findAllByTutor_Id(cliente.getId()).getFirst();
         consulta.setPet(pet);
-        consulta.setStatus(StatusConsultaEnum.PENDENTE);
+        consulta.setStatus(StatusConsultaEnum.FINALIZADO);
         consulta.setSolicitante(cliente);
+        consulta.setIniciadoEm(LocalDateTime.now().minusHours(1));
+        consulta.setFinalizadoEm(LocalDateTime.now().minusMinutes(21));
+        consulta.setResumoConsulta("Tudo normal com o paciente!");
         consulta.setAtendente(atendente);
         consulta.setSolicitadoEm(LocalDateTime.now().minusDays(2));
         consulta.setFormaPagamento(TipoPagamentoEnum.DINHEIRO);
+        PagamentoModel pagamento = new PagamentoModel();
+        pagamento.setStatusPagamento(StatusPagamentoEnum.APROVADO);
+        pagamento.setValorPagamento(BigDecimal.valueOf(tipo.getValor()));
+        pagamento.setDataPagamento(LocalDateTime.now());
+        pagamento.setEmitidoPor(cliente);
+        pagamento.setAprovadoPor(atendente);
+        pagamento.setDataAtualizacao(LocalDateTime.now());
+        pagamento.setTipoPagamento(TipoPagamentoEnum.DINHEIRO);
+        consulta.setPagamento(this.pagamentoRepository.save(pagamento));
         this.consultaRepository.save(consulta);
     }
 
@@ -174,7 +186,7 @@ public class UsuariosPadroes implements CommandLineRunner {
 
         this.tipoConsultaRepository.saveAll(List.of(emergencia, vacinacao));
         rotina = this.tipoConsultaRepository.save(rotina);
-        mockarConsulta(usuarios.get("cliente"), usuarios.get("atendente"), usuarios.get("veterinario"), rotina);
+        // mockarConsulta(usuarios.get("cliente"), usuarios.get("atendente"), usuarios.get("veterinario"), rotina);
     }
 
     private void pet(UsuarioModel cliente) {
